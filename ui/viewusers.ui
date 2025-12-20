@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ViewUsersWidget</class>
+ <widget class="QWidget" name="ViewUsersWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>619</width>
+    <height>437</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Month</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="monthComboBox">
+       <item>
+        <property name="text">
+         <string>January</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>February</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>March</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>April</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>May</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>June</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>July</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>August</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>September</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>October</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>November</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>December</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Year</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="wordWrap">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="yearComboBox">
+       <item>
+        <property name="text">
+         <string>2025</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>2026</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="refreshButton">
+       <property name="text">
+        <string>Refresh</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QTableWidget" name="usersTableWidget">
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+     </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Monthly Summary</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QLabel" name="totalBaseSalaryLabel">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="totalPaidLabel">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="totalPendingLabel">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
