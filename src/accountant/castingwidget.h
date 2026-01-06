@@ -28,6 +28,9 @@ private:
 
     int m_jobId = 0;
     CastingData collectCastingData() const;
+
+    void resetForm();
+    void setupMetalComboBoxes();
 };
 
 #endif // CASTINGWIDGET_H

@@ -20,6 +20,11 @@ LoginWindow::LoginWindow(QWidget *parent)
     // Connect login button
     connect(ui->loginButton, &QPushButton::clicked,
             this, &LoginWindow::onLoginClicked);
+
+    // Connect show password checkbox
+    connect(ui->showPasswordCheckBox, &QCheckBox::toggled,
+            this, &LoginWindow::onShowPasswordToggled);
+    onShowPasswordToggled(false);
 }
 
 LoginWindow::~LoginWindow()
@@ -93,5 +98,14 @@ void LoginWindow::onLoginClicked()
     SessionManager::setActiveRole(roles.first());
     openDashboardForRole(roles.first());
 
+}
+
+void LoginWindow::onShowPasswordToggled(bool checked)
+{
+    if (checked) {
+        ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
+    } else {
+        ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+    }
 }
 

@@ -17,6 +17,7 @@ public:
 
 private slots:
     void onLoginClicked();
+    void onShowPasswordToggled(bool checked);
 
 private:
     Ui::LoginWindow *ui;

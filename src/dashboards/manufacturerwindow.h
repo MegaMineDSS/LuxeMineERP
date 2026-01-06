@@ -20,6 +20,8 @@ private slots:
 
 private:
     Ui::ManufacturerWindow *ui;
+
+    void openJobsList();
 };
 
 #endif // MANUFACTURERWINDOW_H

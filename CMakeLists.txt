@@ -52,6 +52,7 @@ set(SOURCES
     src/common/SessionManager.cpp
     src/common/rolewindowfactory.cpp
     src/common/switchroledialog.cpp
+    src/common/goldweightcalculator.cpp
 
     # # ---- Admin ----
     src/admin/usercreationwidget.cpp
@@ -65,6 +66,12 @@ set(SOURCES
     # # ---- Accountant ----
     src/accountant/castingwidget.cpp
     src/accountant/castinglistwidget.cpp
+
+    # # ---- Manufacturer ----
+    src/manufacturer/jobsheetwidget.cpp
+    src/manufacturer/managegolddialog.cpp
+    src/manufacturer/diamonissueretbrodialog.cpp
+    src/manufacturer/jobslistwidget.cpp
 
 
 )
@@ -94,12 +101,15 @@ set(HEADERS
     src/models/OrderStatusData.h
     src/models/imageclicklabel.h
     src/models/CastingData.h
+    src/models/CastingListRow.h
+    src/models/JobSheetData.h
 
     # # ---- Common ----
     src/common/SessionManager.h
     src/common/Role.h
     src/common/rolewindowfactory.h
     src/common/switchroledialog.h
+    src/common/goldweightcalculator.h
 
     # # ---- Admin ----
     src/admin/usercreationwidget.h
@@ -113,6 +123,12 @@ set(HEADERS
     # # ---- Accountant ----
     src/accountant/castingwidget.h
     src/accountant/castinglistwidget.h
+
+    # # ---- Manufacturer ----
+    src/manufacturer/jobsheetwidget.h
+    src/manufacturer/managegolddialog.h
+    src/manufacturer/diamonissueretbrodialog.h
+    src/manufacturer/jobslistwidget.h
 
 
 )
@@ -131,7 +147,10 @@ set(UI_FILES
     ui/orderlist.ui
     ui/casting.ui
     ui/castinglist.ui
-
+    ui/jobsheet.ui
+    ui/managegold.ui
+    ui/diamonissueretbro.ui
+    ui/jobslist.ui
 
 )
 
@@ -142,7 +161,7 @@ qt_add_executable(LuxeMineERP
     WIN32
     ${SOURCES}
     ${HEADERS}
-    ${UI_FILES} 
+    ${UI_FILES}
 )
 
 # -------------------------------------------------

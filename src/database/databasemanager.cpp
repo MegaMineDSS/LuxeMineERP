@@ -1,68 +1,60 @@
 #include "DatabaseManager.h"
 
-#include <QSqlError>
-#include <QSqlQuery>
+#include <QCryptographicHash>
 #include <QDebug>
 #include <QDir>
-#include <QCryptographicHash>
+#include <QSqlError>
+#include <QSqlQuery>
 
-DatabaseManager& DatabaseManager::instance()
-{
-    static DatabaseManager instance;
-    return instance;
+
+DatabaseManager &DatabaseManager::instance() {
+  static DatabaseManager instance;
+  return instance;
 }
 
-DatabaseManager::DatabaseManager()
-{
+DatabaseManager::DatabaseManager() {}
+
+DatabaseManager::~DatabaseManager() {
+  if (m_db.isOpen()) {
+    m_db.close();
+  }
 }
 
-DatabaseManager::~DatabaseManager()
-{
-    if (m_db.isOpen()) {
-        m_db.close();
-    }
+bool DatabaseManager::initialize() {
+  if (QSqlDatabase::contains("LuxeMineConnection")) {
+    m_db = QSqlDatabase::database("LuxeMineConnection");
+    return true;
+  }
+
+  m_db = QSqlDatabase::addDatabase("QSQLITE", "LuxeMineConnection");
+
+  // Create data directory if not exists
+  QDir dir(QDir::currentPath());
+  if (!dir.exists("data")) {
+    dir.mkdir("data");
+  }
+
+  // Database path
+  QString dbPath = dir.filePath("data/luxemine.db");
+  m_db.setDatabaseName(dbPath);
+
+  if (!m_db.open()) {
+    qCritical() << "Database open failed:" << m_db.lastError().text();
+    return false;
+  }
+
+  return createTables();
 }
 
-bool DatabaseManager::initialize()
-{
-    if (QSqlDatabase::contains("LuxeMineConnection")) {
-        m_db = QSqlDatabase::database("LuxeMineConnection");
-        return true;
-    }
+QSqlDatabase DatabaseManager::database() const { return m_db; }
 
-    m_db = QSqlDatabase::addDatabase("QSQLITE", "LuxeMineConnection");
+bool DatabaseManager::createTables() {
+  QSqlQuery query(m_db);
 
-    // Create data directory if not exists
-    QDir dir(QDir::currentPath());
-    if (!dir.exists("data")) {
-        dir.mkdir("data");
-    }
-
-    // Database path
-    QString dbPath = dir.filePath("data/luxemine.db");
-    m_db.setDatabaseName(dbPath);
-
-    if (!m_db.open()) {
-        qCritical() << "Database open failed:" << m_db.lastError().text();
-        return false;
-    }
-
-    return createTables();
-}
-
-QSqlDatabase DatabaseManager::database() const
-{
-    return m_db;
-}
-
-bool DatabaseManager::createTables()
-{
-    QSqlQuery query(m_db);
-
-    // -----------------------------
-    // USERS (login only)
-    // -----------------------------
-    if (!query.exec(R"(
+  // -----------------------------
+  // USERS (login only)
+  // -----------------------------
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
@@ -71,14 +63,14 @@ bool DatabaseManager::createTables()
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     )")) {
-        qCritical() << "users table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "users table error:" << query.lastError();
+    return false;
+  }
 
-    // -----------------------------
-    // EMPLOYEES (HR / payroll)
-    // -----------------------------
-    if (!query.exec(R"(
+  // -----------------------------
+  // EMPLOYEES (HR / payroll)
+  // -----------------------------
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS employees (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -89,27 +81,27 @@ bool DatabaseManager::createTables()
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
     )")) {
-        qCritical() << "employees table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "employees table error:" << query.lastError();
+    return false;
+  }
 
-    // -----------------------------
-    // ROLES (master)
-    // -----------------------------
-    if (!query.exec(R"(
+  // -----------------------------
+  // ROLES (master)
+  // -----------------------------
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS roles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE NOT NULL
         );
     )")) {
-        qCritical() << "roles table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "roles table error:" << query.lastError();
+    return false;
+  }
 
-    // -----------------------------
-    // USER ↔ ROLE (multi-role)
-    // -----------------------------
-    if (!query.exec(R"(
+  // -----------------------------
+  // USER ↔ ROLE (multi-role)
+  // -----------------------------
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS user_roles (
             user_id INTEGER NOT NULL,
             role_id INTEGER NOT NULL,
@@ -118,14 +110,14 @@ bool DatabaseManager::createTables()
             FOREIGN KEY(role_id) REFERENCES roles(id)
         );
     )")) {
-        qCritical() << "user_roles table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "user_roles table error:" << query.lastError();
+    return false;
+  }
 
-    // -----------------------------
-    // SELLER PROFILE (seller-only)
-    // -----------------------------
-    if (!query.exec(R"(
+  // -----------------------------
+  // SELLER PROFILE (seller-only)
+  // -----------------------------
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS seller_profile (
             employee_id INTEGER PRIMARY KEY,
             selling_percentage REAL NOT NULL,
@@ -134,14 +126,14 @@ bool DatabaseManager::createTables()
             FOREIGN KEY(employee_id) REFERENCES employees(id)
         );
     )")) {
-        qCritical() << "seller_profile table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "seller_profile table error:" << query.lastError();
+    return false;
+  }
 
-    // -----------------------------
-    // EMPLOYEE PAYMENTS (MONTHLY)
-    // -----------------------------
-    if (!query.exec(R"(
+  // -----------------------------
+  // EMPLOYEE PAYMENTS (MONTHLY)
+  // -----------------------------
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS employee_payments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER NOT NULL,
@@ -155,12 +147,11 @@ bool DatabaseManager::createTables()
             FOREIGN KEY(employee_id) REFERENCES employees(id)
         );
     )")) {
-        qCritical() << "employee_payments table error:"
-                    << query.lastError().text();
-        return false;
-    }
+    qCritical() << "employee_payments table error:" << query.lastError().text();
+    return false;
+  }
 
-    if (!query.exec(R"(
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS order_book_detail (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
@@ -243,11 +234,11 @@ bool DatabaseManager::createTables()
             FOREIGN KEY (job_id) REFERENCES jobs(job_id)
         );
     )")) {
-        qCritical() << "seller_profile table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "seller_profile table error:" << query.lastError();
+    return false;
+  }
 
-    if (!query.exec(R"(
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS order_status (
             job_id INTEGER PRIMARY KEY,
 
@@ -262,30 +253,30 @@ bool DatabaseManager::createTables()
             FOREIGN KEY (job_id) REFERENCES jobs(job_id)
         );
     )")) {
-        qCritical() << "seller_profile table error:" << query.lastError();
-        return false;
-    }
-    if (!query.exec(R"(
+    qCritical() << "seller_profile table error:" << query.lastError();
+    return false;
+  }
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS jobs (
             job_id INTEGER PRIMARY KEY AUTOINCREMENT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
     )")) {
-        qCritical() << "seller_profile table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "seller_profile table error:" << query.lastError();
+    return false;
+  }
 
-    if (!query.exec(R"(
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS seller_order_counter (
             seller_id TEXT PRIMARY KEY,
             last_order_no INTEGER NOT NULL DEFAULT 0
         );
     )")) {
-        qCritical() << "seller_profile table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "seller_profile table error:" << query.lastError();
+    return false;
+  }
 
-    if (!query.exec(R"(
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS orders (
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
             job_id INTEGER NOT NULL,
@@ -297,11 +288,11 @@ bool DatabaseManager::createTables()
             FOREIGN KEY (job_id) REFERENCES jobs(job_id)
         );
     )")) {
-        qCritical() << "seller_profile table error:" << query.lastError();
-        return false;
-    }
+    qCritical() << "seller_profile table error:" << query.lastError();
+    return false;
+  }
 
-    if (!query.exec(R"(
+  if (!query.exec(R"(
         CREATE TABLE IF NOT EXISTS casting_entry (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
@@ -328,84 +319,96 @@ bool DatabaseManager::createTables()
             -- Meta
             accountant_id INTEGER,
             status TEXT DEFAULT 'OPEN',
+            dia_price REAL DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
             FOREIGN KEY(job_id) REFERENCES jobs(id)
         );
     )")) {
-        qCritical() << "seller_profile table error:" << query.lastError();
-        return false;
+    qCritical() << "seller_profile table error:" << query.lastError();
+    return false;
+  }
+
+  // -----------------------------
+  // MIGRATION: Ensure dia_price exists
+  // -----------------------------
+  // Check if column exists, if not add it.
+  // SQLite doesn't support IF NOT EXISTS in ADD COLUMN, so we check pragma
+  // (simple way) or just try blindly (ignoring specific error). Safest way
+  // without complex pragma parsing: try to select it, if fails, add it.
+  {
+    QSqlQuery check(m_db);
+    if (!check.exec("SELECT dia_price FROM casting_entry LIMIT 1")) {
+      // Column likely missing
+      QSqlQuery addCol(m_db);
+      if (!addCol.exec("ALTER TABLE casting_entry ADD COLUMN dia_price REAL "
+                       "DEFAULT 0")) {
+        qWarning()
+            << "Migration: Failed to add dia_price column (might verify why):"
+            << addCol.lastError().text();
+      } else {
+        qInfo() << "Migration: Added dia_price column to casting_entry";
+      }
     }
+  }
 
+  // -----------------------------
+  // SEED ROLES (SAFE)
+  // -----------------------------
+  QStringList defaultRoles = {"admin", "seller", "designer", "manufacturer",
+                              "accountant"};
 
-    // -----------------------------
-    // SEED ROLES (SAFE)
-    // -----------------------------
-    QStringList defaultRoles = {
-        "admin",
-        "seller",
-        "designer",
-        "manufacturer",
-        "accountant"
-    };
+  for (const QString &role : defaultRoles) {
+    QSqlQuery check(m_db);
+    check.prepare("SELECT COUNT(*) FROM roles WHERE name = ?");
+    check.addBindValue(role);
+    check.exec();
+    check.next();
 
-    for (const QString &role : defaultRoles) {
-        QSqlQuery check(m_db);
-        check.prepare("SELECT COUNT(*) FROM roles WHERE name = ?");
-        check.addBindValue(role);
-        check.exec();
-        check.next();
-
-        if (check.value(0).toInt() == 0) {
-            QSqlQuery insert(m_db);
-            insert.prepare("INSERT INTO roles (name) VALUES (?)");
-            insert.addBindValue(role);
-            insert.exec();
-        }
+    if (check.value(0).toInt() == 0) {
+      QSqlQuery insert(m_db);
+      insert.prepare("INSERT INTO roles (name) VALUES (?)");
+      insert.addBindValue(role);
+      insert.exec();
     }
+  }
 
-    // -----------------------------
-    // DEFAULT ADMIN (DEV ONLY)
-    // -----------------------------
-    QSqlQuery adminCheck(m_db);
-    adminCheck.exec("SELECT COUNT(*) FROM users WHERE username='admin'");
-    adminCheck.next();
+  // -----------------------------
+  // DEFAULT ADMIN (DEV ONLY)
+  // -----------------------------
+  QSqlQuery adminCheck(m_db);
+  adminCheck.exec("SELECT COUNT(*) FROM users WHERE username='admin'");
+  adminCheck.next();
 
-    if (adminCheck.value(0).toInt() == 0) {
-        QSqlQuery insertAdmin(m_db);
-        insertAdmin.prepare(R"(
+  if (adminCheck.value(0).toInt() == 0) {
+    QSqlQuery insertAdmin(m_db);
+    insertAdmin.prepare(R"(
         INSERT INTO users (username, password_hash, is_active)
         VALUES ('admin', :pass, 1)
     )");
 
-        insertAdmin.bindValue(
-            ":pass",
-            QString(
-                QCryptographicHash::hash(
-                    QByteArray("admin123"),
-                    QCryptographicHash::Sha256
-                    ).toHex()
-                )
-            );
+    insertAdmin.bindValue(
+        ":pass", QString(QCryptographicHash::hash(QByteArray("admin123"),
+                                                  QCryptographicHash::Sha256)
+                             .toHex()));
 
-        insertAdmin.exec();
+    insertAdmin.exec();
 
-        int adminUserId = insertAdmin.lastInsertId().toInt();
+    int adminUserId = insertAdmin.lastInsertId().toInt();
 
-        // Assign admin role
-        QSqlQuery roleQuery(m_db);
-        roleQuery.exec("SELECT id FROM roles WHERE name='admin'");
-        roleQuery.next();
+    // Assign admin role
+    QSqlQuery roleQuery(m_db);
+    roleQuery.exec("SELECT id FROM roles WHERE name='admin'");
+    roleQuery.next();
 
-        int adminRoleId = roleQuery.value(0).toInt();
+    int adminRoleId = roleQuery.value(0).toInt();
 
-        QSqlQuery map(m_db);
-        map.prepare("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)");
-        map.addBindValue(adminUserId);
-        map.addBindValue(adminRoleId);
-        map.exec();
-    }
+    QSqlQuery map(m_db);
+    map.prepare("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)");
+    map.addBindValue(adminUserId);
+    map.addBindValue(adminRoleId);
+    map.exec();
+  }
 
-
-    return true;
+  return true;
 }

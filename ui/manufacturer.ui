@@ -13,7 +13,13 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QMdiArea" name="mdiArea"/>
+    </item>
+   </layout>
+  </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
@@ -29,12 +35,24 @@
     </property>
     <addaction name="actionSwitch_Role"/>
    </widget>
+   <widget class="QMenu" name="menuJobs">
+    <property name="title">
+     <string>Jobs</string>
+    </property>
+    <addaction name="actionJobs_List"/>
+   </widget>
    <addaction name="menuRoles"/>
+   <addaction name="menuJobs"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionSwitch_Role">
    <property name="text">
     <string>Switch Role</string>
+   </property>
+  </action>
+  <action name="actionJobs_List">
+   <property name="text">
+    <string>Jobs List</string>
    </property>
   </action>
  </widget>

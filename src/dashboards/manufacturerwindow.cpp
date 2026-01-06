@@ -4,6 +4,9 @@
 #include "common/switchroledialog.h"
 #include "common/rolewindowfactory.h"
 #include "common/sessionmanager.h"
+#include "manufacturer/jobslistwidget.h"
+
+#include <QMdiSubWindow>
 
 ManufacturerWindow::ManufacturerWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -13,6 +16,9 @@ ManufacturerWindow::ManufacturerWindow(QWidget *parent)
 
     connect(ui->actionSwitch_Role, &QAction::triggered,
             this, &ManufacturerWindow::changeRole);
+
+    connect(ui->actionJobs_List, &QAction::triggered,
+            this, &ManufacturerWindow::openJobsList);
 }
 
 ManufacturerWindow::~ManufacturerWindow()
@@ -20,7 +26,27 @@ ManufacturerWindow::~ManufacturerWindow()
     delete ui;
 }
 
-void ManufacturerWindow::changeRole(){
+void ManufacturerWindow::openJobsList()
+{
+    for(QMdiSubWindow *sub : ui->mdiArea->subWindowList()) {
+        if (sub->widget()->objectName() == "JobsList") {
+            sub->setFocus();
+            return;
+        }
+    }
+
+    auto *widget = new JobsListWidget;
+    widget->setObjectName("JobsList");
+
+    QMdiSubWindow *subWindow = ui->mdiArea->addSubWindow(widget);
+    subWindow->setWindowTitle("Jobs List");
+    subWindow->setAttribute(Qt::WA_DeleteOnClose);
+
+    widget->show();
+}
+
+void ManufacturerWindow::changeRole()
+{
     // 1️⃣ Open role selection dialog
     SwitchRoleDialog dlg(this);
 
