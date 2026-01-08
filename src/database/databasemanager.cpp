@@ -329,6 +329,42 @@ bool DatabaseManager::createTables() {
     return false;
   }
 
+  if (!query.exec(R"(
+        CREATE TABLE IF NOT EXISTS "Fancy_diamond" (
+            "shape"	TEXT NOT NULL,
+            "sizeMM"	TEXT NOT NULL,
+            "weight"	REAL NOT NULL,
+            "price"	REAL NOT NULL
+        );
+    )")) {
+      qCritical() << "Fancy_diamond table error:" << query.lastError();
+      return false;
+  }
+
+  if (!query.exec(R"(
+        CREATE TABLE IF NOT EXISTS "Round_diamond" (
+            "sieve"	TEXT NOT NULL,
+            "sizeMM"	REAL NOT NULL UNIQUE,
+            "weight"	REAL NOT NULL,
+            "price"	REAL NOT NULL
+        );
+    )")) {
+      qCritical() << "Round_diamond table error:" << query.lastError();
+      return false;
+  }
+  // if (!query.exec(R"(
+  //       CREATE TABLE jewelry_menu (
+  //           id INTEGER PRIMARY KEY AUTOINCREMENT,
+  //           parent_id INTEGER, -- NULL for top-level categories, references id for sub-items
+  //           name TEXT NOT NULL, -- Name of the category or item (e.g., "Rings")
+  //           display_text TEXT NOT NULL, -- Display text for the item (e.g., "Ring (Men's Wedding Band)\")
+  //           FOREIGN KEY (parent_id) REFERENCES jewelry_menu(id) ON DELETE CASCADE
+  //       );
+  //   )")) {
+  //     qCritical() << "jewelry_menu table error:" << query.lastError();
+  //     return false;
+  // }
+
   // -----------------------------
   // MIGRATION: Ensure dia_price exists
   // -----------------------------

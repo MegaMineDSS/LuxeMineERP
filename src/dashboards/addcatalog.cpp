@@ -333,3 +333,5 @@ void AddCatalog::keyPressEvent(QKeyEvent *event)
         AddCatalog::keyPressEvent(event);
     }
 }
+
+

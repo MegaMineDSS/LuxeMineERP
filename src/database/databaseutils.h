@@ -46,6 +46,7 @@ public:
   static void fillStoneTable(QTableWidget *table, const QString &designNo);
 
   static QList<QVariantList> fetchJewelryMenuItems();
+  static QList<QVariantList> fetchCatalogData();
 
   static QString insertCatalogData(const QString &imagePath, const QString &imageType, const QString &designNo,
                                    const QString &companyName, const QJsonArray &goldArray,
@@ -61,6 +62,8 @@ public:
   static QStringList fetchShapes(const QString &tableType);
 
   static QStringList fetchSizes(const QString &tableType, const QString &shape);
+
+  static bool deleteDesign(QString &designNo) ;
 
   DatabaseUtils();
 };

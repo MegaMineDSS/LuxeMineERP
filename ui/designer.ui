@@ -40,6 +40,7 @@
      <string>Catalog</string>
     </property>
     <addaction name="actionAdd_Catalog"/>
+    <addaction name="actionModify_Catalog"/>
    </widget>
    <addaction name="menuRoles"/>
    <addaction name="menuCatalog"/>
@@ -53,6 +54,11 @@
   <action name="actionAdd_Catalog">
    <property name="text">
     <string>Add Catalog</string>
+   </property>
+  </action>
+  <action name="actionModify_Catalog">
+   <property name="text">
+    <string>Modify Catalog</string>
    </property>
   </action>
  </widget>
