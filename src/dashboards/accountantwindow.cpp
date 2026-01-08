@@ -27,30 +27,30 @@ AccountantWindow::~AccountantWindow()
 }
 
 void AccountantWindow::changeRole(){
-    // 1️⃣ Open role selection dialog
+    // 1 Open role selection dialog
     SwitchRoleDialog dlg(this);
 
     if (dlg.exec() != QDialog::Accepted)
         return;
 
-    // 2️⃣ Get selected role
+    // 2 Get selected role
     QString newRole = dlg.selectedRole();
 
-    // 3️⃣ Ignore if same role selected
+    // 3 Ignore if same role selected
     if (newRole == SessionManager::activeRole())
         return;
 
-    // 4️⃣ Update session
+    // 4 Update session
     SessionManager::setActiveRole(newRole);
 
-    // 5️⃣ Open new role window
+    // 5 Open new role window
     QWidget *nextWindow = RoleWindowFactory::create(newRole);
     if (!nextWindow)
         return;
 
     nextWindow->show();
 
-    // 6️⃣ Close current window
+    // 6 Close current window
     this->close();
 }
 

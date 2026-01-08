@@ -7,6 +7,10 @@
 #include "models/JobSheetData.h"
 
 #include <QTableWidget>
+#include <QJsonArray>
+
+#include <xlsxdocument.h>
+#include <xlsxworksheet.h>
 
 class DatabaseUtils {
 public:
@@ -40,6 +44,23 @@ public:
   static bool updateDesignNoAndImagePath(const QString &jobNo, const QString &designNo, const QString &imagePath);
 
   static void fillStoneTable(QTableWidget *table, const QString &designNo);
+
+  static QList<QVariantList> fetchJewelryMenuItems();
+
+  static QString insertCatalogData(const QString &imagePath, const QString &imageType, const QString &designNo,
+                                   const QString &companyName, const QJsonArray &goldArray,
+                                   const QJsonArray &diamondArray, const QJsonArray &stoneArray,
+                                   const QString &note) ;
+
+  static QString saveImage(const QString &imagePath) ;
+
+  static bool excelBulkInsertCatalog(const QString &filePath);
+
+  static QJsonArray generateGoldWeights(int inputKarat, double inputWeight) ;
+
+  static QStringList fetchShapes(const QString &tableType);
+
+  static QStringList fetchSizes(const QString &tableType, const QString &shape);
 
   DatabaseUtils();
 };

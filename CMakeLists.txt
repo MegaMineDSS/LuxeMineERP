@@ -9,12 +9,14 @@ project(LuxeMineERP
 )
 
 # -------------------------------------------------
-# Qt setup (Qt 6 recommended way)
+# Qt setup
 # -------------------------------------------------
 find_package(Qt6 6.5 REQUIRED COMPONENTS
     Core
     Widgets
     Sql
+    GuiPrivate
+    CorePrivate
 )
 
 qt_standard_project_setup()
@@ -25,75 +27,75 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS
 )
 
 # -------------------------------------------------
-# Sources
+# External: QXlsx
+# -------------------------------------------------
+file(GLOB QXLSX_SOURCES
+    external/QXlsx/source/*.cpp
+)
+
+file(GLOB QXLSX_HEADERS
+    external/QXlsx/include/*.h
+)
+
+# -------------------------------------------------
+# Project sources
 # -------------------------------------------------
 set(SOURCES
     src/main.cpp
-    # # ---- Auth ----
+
     src/auth/LoginWindow.cpp
     src/auth/AuthService.cpp
 
-    # # ---- Dashboards ----
     src/dashboards/AdminWindow.cpp
     src/dashboards/SellerWindow.cpp
     src/dashboards/DesignerWindow.cpp
     src/dashboards/ManufacturerWindow.cpp
     src/dashboards/AccountantWindow.cpp
 
-    # # ---- Database ----
     src/database/DatabaseManager.cpp
     src/database/UserRepository.cpp
     src/database/databaseutils.cpp
 
-    # # ---- Models ----
     src/models/imageclicklabel.cpp
 
-    # # ---- Common ----
     src/common/SessionManager.cpp
     src/common/rolewindowfactory.cpp
     src/common/switchroledialog.cpp
     src/common/goldweightcalculator.cpp
 
-    # # ---- Admin ----
     src/admin/usercreationwidget.cpp
     src/admin/viewuserswidget.cpp
     src/admin/changepassworddialog.cpp
 
-    # # ---- Seller ----
     src/seller/orderwidget.cpp
     src/seller/orderlistwidget.cpp
 
-    # # ---- Accountant ----
     src/accountant/castingwidget.cpp
     src/accountant/castinglistwidget.cpp
 
-    # # ---- Manufacturer ----
+    src/dashboards/addcatalog.cpp
+    src/dashboards/jewelrymenu.cpp
+
     src/manufacturer/jobsheetwidget.cpp
     src/manufacturer/managegolddialog.cpp
     src/manufacturer/diamonissueretbrodialog.cpp
     src/manufacturer/jobslistwidget.cpp
-
-
 )
 
 set(HEADERS
-    # ---- Auth ----
     src/auth/LoginWindow.h
     src/auth/AuthService.h
 
-    # # ---- Dashboards ----
     src/dashboards/AdminWindow.h
     src/dashboards/SellerWindow.h
     src/dashboards/DesignerWindow.h
     src/dashboards/ManufacturerWindow.h
     src/dashboards/AccountantWindow.h
 
-    # # ---- Database ----
     src/database/DatabaseManager.h
     src/database/UserRepository.h
     src/database/databaseutils.h
 
-    # # ---- Models ----
     src/models/User.h
     src/models/Order.h
     src/models/UserPaymentView.h
@@ -104,33 +106,29 @@ set(HEADERS
     src/models/CastingListRow.h
     src/models/JobSheetData.h
 
-    # # ---- Common ----
     src/common/SessionManager.h
     src/common/Role.h
     src/common/rolewindowfactory.h
     src/common/switchroledialog.h
     src/common/goldweightcalculator.h
 
-    # # ---- Admin ----
     src/admin/usercreationwidget.h
     src/admin/viewuserswidget.h
     src/admin/changepassworddialog.h
 
-    # # ---- Seller ----
     src/seller/orderwidget.h
     src/seller/orderlistwidget.h
 
-    # # ---- Accountant ----
     src/accountant/castingwidget.h
     src/accountant/castinglistwidget.h
 
-    # # ---- Manufacturer ----
+    src/dashboards/addcatalog.h
+    src/dashboards/jewelrymenu.h
+
     src/manufacturer/jobsheetwidget.h
     src/manufacturer/managegolddialog.h
     src/manufacturer/diamonissueretbrodialog.h
     src/manufacturer/jobslistwidget.h
-
-
 )
 
 set(UI_FILES
@@ -151,7 +149,7 @@ set(UI_FILES
     ui/managegold.ui
     ui/diamonissueretbro.ui
     ui/jobslist.ui
-
+    ui/addcatalog.ui
 )
 
 # -------------------------------------------------
@@ -165,13 +163,11 @@ qt_add_executable(LuxeMineERP
 )
 
 # -------------------------------------------------
-# Link Qt libraries
+# Attach QXlsx to target
 # -------------------------------------------------
-target_link_libraries(LuxeMineERP
-    PRIVATE
-        Qt6::Core
-        Qt6::Widgets
-        Qt6::Sql
+target_sources(LuxeMineERP PRIVATE
+    ${QXLSX_SOURCES}
+    ${QXLSX_HEADERS}
 )
 
 # -------------------------------------------------
@@ -182,17 +178,31 @@ target_include_directories(LuxeMineERP PRIVATE
     src/models
     src/common
     src/database
+    external/QXlsx/include
 )
 
 # -------------------------------------------------
-# Compiler settings (MSVC)
+# Link libraries
+# -------------------------------------------------
+target_link_libraries(LuxeMineERP
+    PRIVATE
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::Sql
+        Qt6::Gui
+        Qt6::GuiPrivate
+        Qt6::CorePrivate
+)
+
+# -------------------------------------------------
+# Compiler settings
 # -------------------------------------------------
 if (MSVC)
     target_compile_options(LuxeMineERP PRIVATE /W4)
 endif()
 
 # -------------------------------------------------
-# Install & Deploy (Qt 6)
+# Install & Deploy
 # -------------------------------------------------
 include(GNUInstallDirs)
 
@@ -205,4 +215,5 @@ qt_generate_deploy_app_script(
     OUTPUT_SCRIPT deploy_script
     NO_UNSUPPORTED_PLATFORM_ERROR
 )
+
 install(SCRIPT ${deploy_script})

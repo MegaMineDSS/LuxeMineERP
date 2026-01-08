@@ -4,6 +4,9 @@
 #include "common/switchroledialog.h"
 #include "common/rolewindowfactory.h"
 #include "common/sessionmanager.h"
+#include "dashboards/addcatalog.h"
+
+#include <QMdiSubWindow>
 
 DesignerWindow::DesignerWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -11,8 +14,20 @@ DesignerWindow::DesignerWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    setWindowTitle("Designer Dashboard") ;
+
     connect(ui->actionSwitch_Role, &QAction::triggered,
             this, &DesignerWindow::changeRole);
+    connect(ui->actionAdd_Catalog, &QAction::triggered, this, &DesignerWindow::openAddCatalog) ;
+
+    // connect Add Catalog action if exists
+    if (ui->menuRoles) {
+        // actionAdd_Catalog likely added in UI; try to connect if present
+        QAction *act = ui->menuRoles->findChild<QAction *>("actionAdd_Catalog");
+        if (act) {
+            connect(act, &QAction::triggered, this, &DesignerWindow::openAddCatalog);
+        }
+    }
 }
 
 DesignerWindow::~DesignerWindow()
@@ -21,29 +36,46 @@ DesignerWindow::~DesignerWindow()
 }
 
 void DesignerWindow::changeRole(){
-    // 1️⃣ Open role selection dialog
+    // 1 Open role selection dialog
     SwitchRoleDialog dlg(this);
 
     if (dlg.exec() != QDialog::Accepted)
         return;
 
-    // 2️⃣ Get selected role
+    // 2️ Get selected role
     QString newRole = dlg.selectedRole();
 
-    // 3️⃣ Ignore if same role selected
+    // 3 Ignore if same role selected
     if (newRole == SessionManager::activeRole())
         return;
 
-    // 4️⃣ Update session
+    // 4 Update session
     SessionManager::setActiveRole(newRole);
-
-    // 5️⃣ Open new role window
+    // 5 Open new role window
     QWidget *nextWindow = RoleWindowFactory::create(newRole);
     if (!nextWindow)
         return;
-
     nextWindow->show();
-
-    // 6️⃣ Close current window
+    // 6 Close current window
     this->close();
+}
+
+void DesignerWindow::openAddCatalog()
+{
+    // open AddCatalog in MDI area
+    for (QMdiSubWindow *sub : ui->mdiArea->subWindowList()) {
+        if (sub->widget() && sub->widget()->objectName() == "AddCatalogWidget") {
+            ui->mdiArea->setActiveSubWindow(sub);
+            return;
+        }
+    }
+
+    auto *widget = new AddCatalog;
+    widget->setObjectName("AddCatalogWidget");
+
+    QMdiSubWindow *sub = ui->mdiArea->addSubWindow(widget);
+    sub->setAttribute(Qt::WA_DeleteOnClose);
+    sub->setWindowTitle("Add Catalog");
+
+    widget->showMaximized();
 }
