@@ -11,6 +11,7 @@
 #include <QJsonParseError>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QFileInfo>
 
 bool DatabaseUtils::createOrder(const OrderData &o, int &outJobId,
                                 int &outSellerSeq) {
@@ -920,14 +921,11 @@ bool DatabaseUtils::getCastingDataByJob(int jobId, CastingData &c)
 
 std::optional<JobSheetData> DatabaseUtils::fetchJobSheetData(const QString &jobNo)
 {
-    const QString connName = QStringLiteral("fetch_jobsheet_conn_%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
     std::optional<JobSheetData> result;
 
     {
-        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connName);
+        QSqlDatabase db = DatabaseManager::instance().database();
         // db.setDatabaseName(QCoreApplication::applicationDirPath() + "/database/mega_mine_orderbook.db");
-        QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database/mega_mine_orderbook.db");
-        db.setDatabaseName(dbPath);
 
         if (!db.open()) {
             qWarning() << "[ERROR] Failed to open DB in fetchJobSheetData:" << db.lastError().text();
@@ -970,27 +968,20 @@ std::optional<JobSheetData> DatabaseUtils::fetchJobSheetData(const QString &jobN
             qWarning() << "[WARNING] No data found for jobNo:" << jobNo
                        << " Error:" << query.lastError().text();
         }
-
-        db.close();
     }
 
-    QSqlDatabase::removeDatabase(connName);
     return result;
 }
 
 QPair<QString, QString> DatabaseUtils::fetchDiamondAndStoneJson(const QString &designNo)
 {
-    const QString connName = "fetch_diamond_stone_conn";
     QString diamondJson, stoneJson;
 
     {
-        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connName);
-        QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database/mega_mine_image.db");
-        db.setDatabaseName(dbPath);
+        QSqlDatabase db = DatabaseManager::instance().database();
 
         if (!db.open()) {
             qWarning() << "[ERROR] Failed to open DB in fetchDiamondAndStoneJson:" << db.lastError().text();
-            QSqlDatabase::removeDatabase(connName);
             return {};
         }
 
@@ -1061,24 +1052,17 @@ QPair<QString, QString> DatabaseUtils::fetchDiamondAndStoneJson(const QString &d
                 stoneJson = QString::fromUtf8(QJsonDocument(updated).toJson(QJsonDocument::Compact));
             }
         }
-
-        db.close();
     }
-    QSqlDatabase::removeDatabase(connName);
 
     return {diamondJson, stoneJson};
 }
 
 QString DatabaseUtils::fetchImagePathForDesign(const QString &designNo)
 {
-    const QString connName = QStringLiteral("fetch_img_path_conn_%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
     QString imagePath;
 
     {
-        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connName);
-        // db.setDatabaseName("database/mega_mine_image.db");
-        QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database/mega_mine_image.db");
-        db.setDatabaseName(dbPath);
+        QSqlDatabase db = DatabaseManager::instance().database();
 
         if (db.open()) {
             QSqlQuery query(db);
@@ -1090,13 +1074,10 @@ QString DatabaseUtils::fetchImagePathForDesign(const QString &designNo)
             } else {
                 qWarning() << "[ERROR] No image found for designNo:" << designNo;
             }
-
-            db.close();
         } else {
             qWarning() << "[ERROR] Failed to open DB in fetchImagePathForDesign:" << db.lastError().text();
         }
     }
-    QSqlDatabase::removeDatabase(connName);
     return imagePath;
 }
 
@@ -1137,14 +1118,11 @@ void DatabaseUtils::fillStoneTable(QTableWidget *table, const QString &designNo)
 
 bool DatabaseUtils::updateDesignNoAndImagePath(const QString &jobNo, const QString &designNo, const QString &imagePath)
 {
-    const QString connName = QStringLiteral("update_design_img_conn_%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
+
     bool success = false;
 
     {
-        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connName);
-        // db.setDatabaseName("database/mega_mine_orderbook.db");
-        QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database/mega_mine_orderbook.db");
-        db.setDatabaseName(dbPath);
+        QSqlDatabase db = DatabaseManager::instance().database();
 
         if (db.open()) {
             QSqlQuery query(db);
@@ -1163,14 +1141,394 @@ bool DatabaseUtils::updateDesignNoAndImagePath(const QString &jobNo, const QStri
             } else {
                 qWarning() << "[ERROR] Failed to update OrderBook-Detail:" << query.lastError().text();
             }
-
-            db.close();
         } else {
             qWarning() << "[ERROR] Failed to open DB in updateDesignNoAndImagePath:" << db.lastError().text();
         }
     }
 
-    QSqlDatabase::removeDatabase(connName);
     return success;
 }
 
+
+QList<QVariantList> DatabaseUtils::fetchJewelryMenuItems()
+{
+    QList<QVariantList> menuItems;
+
+    QSqlDatabase db = DatabaseManager::instance().database();
+    QSqlQuery query(db);
+    if (!query.exec("SELECT id, parent_id, name, display_text "
+                    "FROM jewelry_menu ORDER BY parent_id ASC, name ASC")) {
+        qWarning() << "[ERROR] Query failed:" << query.lastError().text();
+        return menuItems;
+    }
+
+    while (query.next()) {
+        QVariantList item;
+        item << query.value(0).toInt();
+        item << (query.value(1).isNull() ? -1 : query.value(1).toInt());
+        item << query.value(2).toString();
+        item << query.value(3).toString();
+        menuItems.append(item);
+    }
+
+    return menuItems;
+}
+
+
+QString DatabaseUtils::insertCatalogData(const QString &imagePath, const QString &imageType, const QString &designNo,
+                                         const QString &companyName, const QJsonArray &goldArray,
+                                         const QJsonArray &diamondArray, const QJsonArray &stoneArray,
+                                         const QString &note)
+{
+    QString success ;
+
+    {
+        QSqlDatabase db = DatabaseManager::instance().database();
+
+        QJsonDocument goldDoc(goldArray);
+        QJsonDocument diamondDoc(diamondArray);
+        QJsonDocument stoneDoc(stoneArray);
+
+        // --- Check if designNo exists ---
+        bool exists = false;
+        {
+            QSqlQuery checkQuery(db);
+            checkQuery.prepare("SELECT COUNT(*) FROM image_data WHERE design_no = :design_no AND \"delete\" = 0");
+            checkQuery.bindValue(":design_no", designNo);
+
+            if (checkQuery.exec() && checkQuery.next()) {
+                exists = (checkQuery.value(0).toInt() > 0);
+            } else {
+                qDebug() << "Check designNo failed:" << checkQuery.lastError().text();
+            }
+        }
+
+        QSqlQuery query(db);
+        if (exists) {
+            // --- UPDATE existing record ---
+            success = "modify" ;
+            query.prepare(R"(
+                UPDATE image_data SET
+                    image_path = :image_path,
+                    image_type = :image_type,
+                    company_name = :company_name,
+                    gold_weight = :gold_weight,
+                    diamond = :diamond,
+                    stone = :stone,
+                    time = :time,
+                    note = :note
+                WHERE design_no = :design_no
+            )");
+        } else {
+            // --- INSERT new record ---
+            success = "insert" ;
+            query.prepare(R"(
+                INSERT INTO image_data
+                    (image_path, image_type, design_no, company_name, gold_weight, diamond, stone, time, note)
+                VALUES
+                    (:image_path, :image_type, :design_no, :company_name, :gold_weight, :diamond, :stone, :time, :note)
+            )");
+        }
+
+        query.bindValue(":image_path", imagePath);
+        query.bindValue(":image_type", imageType);
+        query.bindValue(":design_no", designNo);
+        query.bindValue(":company_name", companyName);
+        query.bindValue(":gold_weight", goldDoc.toJson(QJsonDocument::Compact));
+        query.bindValue(":diamond", diamondDoc.toJson(QJsonDocument::Compact));
+        query.bindValue(":stone", stoneDoc.toJson(QJsonDocument::Compact));
+        query.bindValue(":time", QDateTime::currentDateTime().toString(Qt::ISODate));
+        query.bindValue(":note", note);
+
+        if (!query.exec()) {
+            qDebug() << (exists ? "Update failed:" : "Insert failed:") << query.lastError().text();
+            success = "error" ;
+        }
+    }
+
+    return success;
+}
+
+QString DatabaseUtils::saveImage(const QString &imagePath)
+{
+    QFileInfo sourceInfo(imagePath);
+    if (!sourceInfo.exists()) {
+        qWarning() << "Source image does not exist:" << imagePath;
+        return {};
+    }
+
+    // 1. Get the file extension (e.g., "jpg", "png")
+    QString extension = sourceInfo.suffix();
+
+    // 2. Generate a new, unique filename using a UUID
+    // Example result: "date_67c9a2e65a5c4c6d979953a1a632b70d.jpg"
+    QString uniqueName = QDate::currentDate().toString("'MM_dd_yyyy'_") + QUuid::createUuid().toString(QUuid::WithoutBraces) + "." + extension;
+
+    // 3. Construct the full destination path where the file will be saved
+    QString targetDir = QDir(QCoreApplication::applicationDirPath()).filePath("images");
+    QDir().mkpath(targetDir); // Ensure the directory exists
+    QString newImagePath = QDir(targetDir).filePath(uniqueName);
+
+    // 4. Perform the copy operation
+    if (!QFile::copy(imagePath, newImagePath)) {
+        qWarning() << "Failed to copy image from" << imagePath << "to" << newImagePath;
+        return {};
+    }
+
+    // 5. MODIFIED: Return the relative path in the exact format "images/filename.type"
+    // The filename here is our new unique filename.
+
+    return "images/" + uniqueName;
+}
+
+
+bool DatabaseUtils::excelBulkInsertCatalog(const QString &filePath)
+{
+    QXlsx::Document xlsx(filePath);
+    if (!xlsx.load()) {
+        qWarning() << "[WARNING] Failed to load Excel: " << filePath;
+        return false;
+    }
+
+    // 1. Read Add_Catalog Sheet
+    if (!xlsx.selectSheet("Add_Catalog")) {
+        qWarning() << "Add_Catalog sheet not found";
+        return false;
+    }
+
+    QMap<QString, QJsonObject> catalogMap; // design_no -> base object
+    int row = 2; // assuming row 1 is headers
+    while (!xlsx.read(row, 1).toString().isEmpty()) {
+        QString designNo = xlsx.read(row, 1).toString();
+        QJsonObject catalog;
+        catalog["designNo"]    = designNo;
+        catalog["type"]        = xlsx.read(row, 2).toString();
+        catalog["companyName"] = xlsx.read(row, 3).toString();
+        catalog["goldKt"]      = xlsx.read(row, 4).toInt();
+        catalog["goldWeight"]  = xlsx.read(row, 5).toDouble();
+        catalog["imagePath"]   = xlsx.read(row, 6).toString();
+        catalog["note"]        = xlsx.read(row, 7).toString();
+        catalog["diamond"]     = QJsonArray();
+        catalog["stone"]       = QJsonArray();
+        catalogMap[designNo]   = catalog;
+        row++;
+    }
+
+    // 2. Read Add_Diamond Sheet
+    if (xlsx.selectSheet("Add_Diamond")) {
+        row = 2;
+        while (!xlsx.read(row, 1).toString().isEmpty()) {
+            QString designNo = xlsx.read(row, 1).toString();
+            if (!catalogMap.contains(designNo)) {
+                row++;
+                continue;
+            }
+
+            QJsonArray arr = catalogMap[designNo]["diamond"].toArray();
+            QJsonObject diamond;
+            diamond["type"]     = xlsx.read(row, 2).toString();
+            diamond["sizeMM"]   = xlsx.read(row, 3).toString();
+            diamond["quantity"] = xlsx.read(row, 4).toString();
+            arr.append(diamond);
+            catalogMap[designNo]["diamond"] = arr;
+
+            row++;
+        }
+    }
+
+    // 3. Read Add_Stone Sheet
+    if (xlsx.selectSheet("Add_Stone")) {
+        row = 2;
+        while (!xlsx.read(row, 1).toString().isEmpty()) {
+            QString designNo = xlsx.read(row, 1).toString();
+            if (!catalogMap.contains(designNo)) {
+                row++;
+                continue;
+            }
+
+            QJsonArray arr = catalogMap[designNo]["stone"].toArray();
+            QJsonObject stone;
+            stone["type"]     = xlsx.read(row, 2).toString();
+            stone["sizeMM"]   = xlsx.read(row, 3).toString();
+            stone["quantity"] = xlsx.read(row, 4).toString();
+            arr.append(stone);
+            catalogMap[designNo]["stone"] = arr;
+
+            row++;
+        }
+    }
+
+    // 4. Insert All Into DB
+    QSqlDatabase db = DatabaseManager::instance().database();
+
+    if (!db.open()) {
+        qWarning() << "DB open failed";
+        return false;
+    }
+
+    QSqlQuery query(db);
+    db.transaction(); // bulk insert = faster
+
+    for (auto it = catalogMap.begin(); it != catalogMap.end(); ++it) {
+        const QJsonObject &catalog = it.value();
+
+        QJsonArray diamondArray = catalog["diamond"].toArray();
+        QJsonArray stoneArray   = catalog["stone"].toArray();
+        QJsonArray goldArray    = DatabaseUtils::generateGoldWeights(
+            catalog["goldKt"].toInt(),
+            catalog["goldWeight"].toDouble()
+            );
+
+        QJsonDocument goldDoc(goldArray);
+        QJsonDocument diamondDoc(diamondArray);
+        QJsonDocument stoneDoc(stoneArray);
+
+        QString designNo = catalog["designNo"].toString() ;
+
+        // Check if design already exists
+
+        QSqlQuery checkQuery(db) ;
+        checkQuery.prepare("SELECT COUNT(*) FROM image_data WHERE design_no = :design_no") ;
+        checkQuery.bindValue(":design_no", designNo) ;
+
+        if (!checkQuery.exec()){
+            qWarning() << "Check query failed: " << checkQuery.lastError().text() ;
+            continue ;
+        }
+
+        checkQuery.next() ;
+        bool designNoExists = checkQuery.value(0).toInt() > 0 ;
+        if (designNoExists) {
+            // Update design values
+            query.prepare(R"(
+                UPDATE image_data
+                SET image_path = :image_path,
+                    image_type = :image_type,
+                    company_name = :company_name,
+                    gold_weight = :gold_weight,
+                    diamond = :diamond,
+                    stone = :stone,
+                    note = :note,
+                    time = :time
+                WHERE design_no = :design_no
+            )") ;
+        }else {
+            // Insert new design
+            query.prepare(R"(
+                INSERT INTO image_data
+                (image_path, image_type, design_no, company_name, gold_weight, diamond, stone, time, note)
+                VALUES (:image_path, :image_type, :design_no, :company_name, :gold_weight, :diamond, :stone, :time, :note)
+            )");
+        }
+
+
+        query.bindValue(":image_path", catalog["imagePath"].toString());
+        query.bindValue(":image_type", catalog["type"].toString());
+        query.bindValue(":design_no", catalog["designNo"].toString());
+        query.bindValue(":company_name", catalog["companyName"].toString());
+        query.bindValue(":gold_weight", goldDoc.toJson(QJsonDocument::Compact));
+        query.bindValue(":diamond", diamondDoc.toJson(QJsonDocument::Compact));
+        query.bindValue(":stone", stoneDoc.toJson(QJsonDocument::Compact));
+        query.bindValue(":time", QDateTime::currentDateTime().toString(Qt::ISODate));
+        query.bindValue(":note", catalog["note"].toString());
+
+        if (!query.exec()) {
+            if (designNoExists) {
+                qWarning() << "[ERROR] Bulk update failed for design " << catalog["designNo"].toString() << ":" << query.lastError().text(); ;
+            }else {
+                qWarning() << "[ERROR] Bulk insert failed for design " << catalog["designNo"].toString() << ":" << query.lastError().text();
+            }
+        }
+    }
+
+    db.commit();
+
+    return true;
+}
+
+QJsonArray DatabaseUtils::generateGoldWeights(int inputKarat, double inputWeight)
+{
+    if (inputKarat <= 0 || inputWeight <= 0.0)
+        return {}; // prevent NaN
+
+    double base24kt = inputWeight * (24.0 / static_cast<double>(inputKarat));
+
+    QList<int> karats = {24, 22, 20, 18, 14, 10};
+    QJsonArray goldArray;
+
+    for (int kt : karats) {
+        double weight = base24kt * (static_cast<double>(kt) / 24.0);
+
+        QJsonObject row;
+        row["karat"] = QString::number(kt) + "kt";
+        row["weight(g)"] = QString::number(weight, 'f', 3);
+        goldArray.append(row);
+    }
+
+    return goldArray;
+}
+
+
+//AddCatalog Logic
+QStringList DatabaseUtils::fetchShapes(const QString &tableType)
+{
+    QStringList shapes;
+
+    QSqlDatabase db = DatabaseManager::instance().database();
+
+    if (!db.open()) {
+        return {};
+    }
+    {
+        QSqlQuery query(db);
+        QString queryStr = (tableType == "diamond")
+                               ? "SELECT DISTINCT shape FROM Fancy_diamond UNION SELECT 'Round' FROM Round_diamond"
+                               : "SELECT DISTINCT shape FROM stones";
+
+        if (!query.exec(queryStr)) {
+            return {};
+        }
+
+        while (query.next()) {
+            shapes.append(query.value(0).toString());
+        }
+    }
+    return shapes;
+}
+
+QStringList DatabaseUtils::fetchSizes(const QString &tableType, const QString &shape)
+{
+    QStringList sizes;
+
+    QSqlDatabase db = DatabaseManager::instance().database();
+
+    if (!db.open()) {
+        return {};
+    }
+
+    {
+        QSqlQuery query(db);
+
+        if (tableType == "diamond") {
+            if (shape == "Round") {
+                query.prepare("SELECT DISTINCT sizeMM FROM Round_diamond ORDER BY sizeMM");
+            } else {
+                query.prepare("SELECT DISTINCT sizeMM FROM Fancy_diamond WHERE shape = :shape ORDER BY sizeMM");
+                query.bindValue(":shape", shape);
+            }
+        } else {
+            query.prepare("SELECT DISTINCT sizeMM FROM stones WHERE shape = :shape ORDER BY sizeMM");
+            query.bindValue(":shape", shape);
+        }
+
+        if (!query.exec()) {
+            return {};
+        }
+
+        while (query.next()) {
+            sizes.append(query.value(0).toString());
+        }
+    }
+
+    return sizes;
+}
