@@ -5,6 +5,8 @@ out
 
 # Qt / CMake generated files
 CMakeCache.txt
+CMakePresets.json
+CMakeUserPresets.json
 CMakeFiles/
 *.cmake
 *.user
