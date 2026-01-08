@@ -1,6 +1,7 @@
 # Ignore build directories
 /build/
 /build/**
+out
 
 # Qt / CMake generated files
 CMakeCache.txt
@@ -25,3 +26,9 @@ CMakeFiles/
 
 # Logs
 *.log
+
+.vs
+.qtcreator
+
+# Extra dependencies
+external
