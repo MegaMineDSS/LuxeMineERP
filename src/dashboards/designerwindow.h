@@ -18,6 +18,7 @@ public:
 private slots:
     void changeRole();
     void openAddCatalog();
+    void openModifyCatalog() ;
 
 private:
     Ui::DesignerWindow *ui;

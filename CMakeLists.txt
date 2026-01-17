@@ -75,6 +75,7 @@ set(SOURCES
 
     src/dashboards/addcatalog.cpp
     src/dashboards/jewelrymenu.cpp
+    src/dashboards/modifycatalog.cpp
 
     src/manufacturer/jobsheetwidget.cpp
     src/manufacturer/managegolddialog.cpp
@@ -124,6 +125,7 @@ set(HEADERS
 
     src/dashboards/addcatalog.h
     src/dashboards/jewelrymenu.h
+    src/dashboards/modifycatalog.h
 
     src/manufacturer/jobsheetwidget.h
     src/manufacturer/managegolddialog.h
@@ -150,6 +152,7 @@ set(UI_FILES
     ui/diamonissueretbro.ui
     ui/jobslist.ui
     ui/addcatalog.ui
+    ui/modifycatalog.ui
 )
 
 # -------------------------------------------------
@@ -180,6 +183,12 @@ target_include_directories(LuxeMineERP PRIVATE
     src/database
     external/QXlsx/include
 )
+
+qt_add_resources(APP_RESOURCES
+    resources.qrc
+)
+
+target_sources(LuxeMineERP PRIVATE ${APP_RESOURCES})
 
 # -------------------------------------------------
 # Link libraries

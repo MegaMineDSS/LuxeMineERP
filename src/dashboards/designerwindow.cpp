@@ -5,6 +5,7 @@
 #include "common/rolewindowfactory.h"
 #include "common/sessionmanager.h"
 #include "dashboards/addcatalog.h"
+#include "dashboards/modifycatalog.h"
 
 #include <QMdiSubWindow>
 
@@ -19,6 +20,8 @@ DesignerWindow::DesignerWindow(QWidget *parent)
     connect(ui->actionSwitch_Role, &QAction::triggered,
             this, &DesignerWindow::changeRole);
     connect(ui->actionAdd_Catalog, &QAction::triggered, this, &DesignerWindow::openAddCatalog) ;
+
+    connect(ui->actionModify_Catalog, &QAction::triggered, this, &DesignerWindow::openModifyCatalog) ;
 
     // connect Add Catalog action if exists
     if (ui->menuRoles) {
@@ -76,6 +79,24 @@ void DesignerWindow::openAddCatalog()
     QMdiSubWindow *sub = ui->mdiArea->addSubWindow(widget);
     sub->setAttribute(Qt::WA_DeleteOnClose);
     sub->setWindowTitle("Add Catalog");
+
+    widget->showMaximized();
+}
+
+void DesignerWindow::openModifyCatalog() {
+    for (QMdiSubWindow *sub : ui->mdiArea->subWindowList()) {
+        if (sub->widget() && sub->widget()->objectName() == "ModifyCatalogWidget") {
+            ui->mdiArea->setActiveSubWindow(sub);
+            return;
+        }
+    }
+
+    auto *widget = new ModifyCatalog;
+    widget->setObjectName("ModifyCatalogWidget");
+
+    QMdiSubWindow *sub = ui->mdiArea->addSubWindow(widget);
+    sub->setAttribute(Qt::WA_DeleteOnClose);
+    sub->setWindowTitle("Modify Catalog");
 
     widget->showMaximized();
 }

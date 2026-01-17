@@ -1532,3 +1532,70 @@ QStringList DatabaseUtils::fetchSizes(const QString &tableType, const QString &s
 
     return sizes;
 }
+
+QList<QVariantList> DatabaseUtils::fetchCatalogData()
+{
+    qDebug() << "[DatabaseUtils] fetchCatalogData called";
+    QList<QVariantList> data;
+    QSqlDatabase db = DatabaseManager::instance().database();
+    if (!db.isOpen()) {
+        qDebug() << "[DatabaseUtils] Database is not open!";
+        return data;
+    }
+
+    QSqlQuery q(db);
+    // Sort by time descending (newest first) as requested
+    QString sql = R"(
+        SELECT image_path, design_no, company_name
+        FROM image_data
+        WHERE "delete" = 0
+        ORDER BY time DESC
+    )";
+    qDebug() << "[DatabaseUtils] Executing query:" << sql;
+
+    q.prepare(sql);
+
+    if (q.exec()) {
+        int count = 0;
+        while (q.next()) {
+            QVariantList row;
+            row << q.value("image_path")
+                << q.value("design_no")
+                << q.value("company_name");
+            data.append(row);
+            count++;
+        }
+        qDebug() << "[DatabaseUtils] Fetched" << count << "records.";
+    } else {
+        qDebug() << "[DatabaseUtils] Error fetching catalog data:" << q.lastError().text();
+    }
+
+    return data;
+}
+
+bool DatabaseUtils::deleteDesign(QString &designNo) {
+    if (designNo.isEmpty()){
+        // qDebug() << "[ERROR] Design number is empty" ;
+        return 1;
+    }
+    QSqlDatabase db = DatabaseManager::instance().database();
+
+    if (!db.open()) {
+        // qDebug() << "[ERROR] Could not open database." ;
+        return 1 ;
+    }
+    try{
+        QSqlQuery query(db) ;
+        query.prepare(R"(UPDATE image_data SET "delete" = 1 WHERE design_no = :design_no)") ;
+        query.bindValue(":design_no", designNo) ;
+        query.exec() ;
+        return 0 ;
+    } catch (QSqlError *e) {
+        qDebug() << e->text() ;
+        return 1 ;
+    }
+
+    return 1;
+}
+
+
