@@ -82,6 +82,8 @@ set(SOURCES
     src/designer/jewelrymenu.cpp
     src/designer/addcatalog.cpp
     src/designer/designerorderlistwidget.cpp
+    src/designer/modifycatalog.cpp
+
 
     src/manufacturer/jobsheetwidget.cpp
     src/manufacturer/managegolddialog.cpp
@@ -135,9 +137,11 @@ set(HEADERS
     src/accountant/metalpurchasewidget.h
     src/accountant/metalpurchasedialog.h
 
+
     src/designer/jewelrymenu.h
     src/designer/addcatalog.h
     src/designer/designerorderlistwidget.h
+    src/designer/modifycatalog.h
 
     src/manufacturer/jobsheetwidget.h
     src/manufacturer/managegolddialog.h
@@ -165,10 +169,13 @@ set(UI_FILES
     ui/diamonissueretbro.ui
     ui/jobslist.ui
     ui/addcatalog.ui
+
     ui/designerorderlist.ui
     ui/dashboard.ui
     ui/stocklist.ui
     ui/stock.ui
+
+    ui/modifycatalog.ui
 )
 
 # -------------------------------------------------
@@ -199,6 +206,12 @@ target_include_directories(LuxeMineERP PRIVATE
     src/database
     external/QXlsx/header
 )
+
+qt_add_resources(APP_RESOURCES
+    resources.qrc
+)
+
+target_sources(LuxeMineERP PRIVATE ${APP_RESOURCES})
 
 # -------------------------------------------------
 # Link libraries

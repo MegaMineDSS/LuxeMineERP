@@ -1683,7 +1683,33 @@ QList<JobListData> DatabaseUtils::getJobsList() {
   }
   QSqlQuery q(db);
 
-  q.prepare(R"(
+  // Check if office_receive column exists before querying, add if missing
+  {
+    QSqlQuery check(db);
+    check.prepare("PRAGMA table_info(jobsheet_detail)");
+    bool hasCol = false;
+    if (check.exec()) {
+      while (check.next()) {
+        if (check.value("name").toString() == "office_receive") {
+          hasCol = true;
+          break;
+        }
+      }
+    }
+
+    if (!hasCol) {
+      qDebug()
+          << "Column 'office_receive' missing in jobsheet_detail, adding it.";
+      QSqlQuery addCol(db);
+      if (!addCol.exec("ALTER TABLE jobsheet_detail ADD COLUMN office_receive "
+                       "REAL DEFAULT 0")) {
+        qCritical() << "Failed to add office_receive column:"
+                    << addCol.lastError();
+      }
+    }
+  }
+
+  if (!q.prepare(R"(
         SELECT 
             od.job_id,
             od.designNo,
@@ -1717,6 +1743,7 @@ QList<JobListData> DatabaseUtils::getJobsList() {
             jd.stone_issue,
             jd.stone_return,
             jd.office_gold_receive,
+            jd.office_receive,
             jd.manufacturer_mfg_receive
             
         FROM order_book_detail od
@@ -1724,10 +1751,15 @@ QList<JobListData> DatabaseUtils::getJobsList() {
         LEFT JOIN jobs j ON od.job_id = j.job_id
         LEFT JOIN jobsheet_detail jd ON CAST(od.job_id AS TEXT) = jd.job_no
         ORDER BY od.deliveryDate ASC
-    )");
+    )")) {
+    qCritical() << "Failed to prepare jobs list query:" << q.lastError();
+    return list;
+  }
 
   if (!q.exec()) {
-    qCritical() << "Failed to fetch jobs list:" << q.lastError();
+    qCritical() << "Failed to fetch jobs list:" << q.lastError()
+                << " Driver Text:" << q.lastError().databaseText()
+                << " Driver Code:" << q.lastError().nativeErrorCode();
     return list;
   }
 
@@ -1814,6 +1846,9 @@ QList<JobListData> DatabaseUtils::getJobsList() {
     d.receiveStonePcs = q.value("receive_stone_pcs").toInt();
     d.receiveStoneWt = q.value("receive_stone_wt").toDouble();
     d.officeGoldReceive = q.value("receive_runner_wt").toDouble();
+    // Default officeReceive - usually 0 unless we have another source?
+    // Let's assume 0 if not in jobsheet_detail
+    d.officeReceive = 0.0;
 
     // OVERRIDE with jobsheet_detail if available
     QString fillingIssue = q.value("filling_issue").toString();
@@ -1823,6 +1858,7 @@ QList<JobListData> DatabaseUtils::getJobsList() {
     QString stIssue = q.value("stone_issue").toString();
     QString stReturn = q.value("stone_return").toString();
     QString offGold = q.value("office_gold_receive").toString();
+    QString offRec = q.value("office_receive").toString();
     QString mfgRec = q.value("manufacturer_mfg_receive").toString();
 
     // Check if jobsheet detail exists (at least one field not empty/null)
@@ -1836,6 +1872,8 @@ QList<JobListData> DatabaseUtils::getJobsList() {
         d.grossWt = parseGoldJson(fillingReturn);
       if (!offGold.isEmpty())
         d.officeGoldReceive = offGold.toDouble();
+      if (!offRec.isEmpty())
+        d.officeReceive = offRec.toDouble();
       if (!mfgRec.isEmpty())
         d.manufacturerMfgReceive = mfgRec.toDouble();
 
@@ -2445,4 +2483,96 @@ bool DatabaseUtils::updateManufacturerMfgReceive(int jobId, double weight) {
     }
   }
   return true;
+}
+
+bool DatabaseUtils::updateOfficeReceive(int jobId, double weight) {
+  QSqlDatabase db = DatabaseManager::instance().database();
+  if (!db.isOpen() && !db.open())
+    return false;
+
+  QSqlQuery q(db);
+  QString jobNo = QString::number(jobId);
+
+  // First try update
+  q.prepare("UPDATE jobsheet_detail SET office_receive = ? WHERE job_no = ?");
+  q.addBindValue(QString::number(weight, 'f', 3));
+  q.addBindValue(jobNo);
+
+  if (!q.exec() || q.numRowsAffected() == 0) {
+    // If update fails (no row), insert
+    q.prepare(
+        "INSERT INTO jobsheet_detail (job_no, office_receive) VALUES (?, ?)");
+    q.addBindValue(jobNo);
+    q.addBindValue(QString::number(weight, 'f', 3));
+    if (!q.exec()) {
+      qCritical() << "Failed to update/insert office_receive:" << q.lastError();
+      return false;
+    }
+  }
+  return true;
+}
+
+QList<QVariantList> DatabaseUtils::fetchCatalogData() {
+  qDebug() << "[DatabaseUtils] fetchCatalogData called";
+  QList<QVariantList> data;
+  QSqlDatabase db = DatabaseManager::instance().database();
+  if (!db.isOpen()) {
+    qDebug() << "[DatabaseUtils] Database is not open!";
+    return data;
+  }
+
+  QSqlQuery q(db);
+  // Sort by time descending (newest first) as requested
+  QString sql = R"(
+        SELECT image_path, design_no, company_name
+        FROM image_data
+        WHERE "delete" = 0
+        ORDER BY time DESC
+    )";
+  qDebug() << "[DatabaseUtils] Executing query:" << sql;
+
+  q.prepare(sql);
+
+  if (q.exec()) {
+    int count = 0;
+    while (q.next()) {
+      QVariantList row;
+      row << q.value("image_path") << q.value("design_no")
+          << q.value("company_name");
+      data.append(row);
+      count++;
+    }
+    qDebug() << "[DatabaseUtils] Fetched" << count << "records.";
+  } else {
+    qDebug() << "[DatabaseUtils] Error fetching catalog data:"
+             << q.lastError().text();
+  }
+
+  return data;
+}
+
+bool DatabaseUtils::deleteDesign(QString &designNo) {
+  if (designNo.isEmpty()) {
+    // qDebug() << "[ERROR] Design number is empty" ;
+    return 1;
+  }
+  QSqlDatabase db = DatabaseManager::instance().database();
+
+  if (!db.open()) {
+    // qDebug() << "[ERROR] Could not open database." ;
+    return 1;
+  }
+  try {
+    QSqlQuery query(db);
+    query.prepare(
+        R"(UPDATE image_data SET "delete" = 1 WHERE design_no = :design_no)");
+    query.bindValue(":design_no", designNo);
+    query.exec();
+    return 0;
+  } catch (QSqlError *e) {
+    qDebug() << e->text();
+    return 1;
+  }
+
+  return 1;
 }

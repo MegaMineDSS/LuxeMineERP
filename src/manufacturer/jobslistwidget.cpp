@@ -43,6 +43,7 @@ void JobsListWidget::setupTable() {
                          "Receive\nStone\nPcs",
                          "Receive\nStone\nWt",
                          "Office\nGold\nRec",
+                         "Office\nReceive",
                          "Mfg\nReceive",
                          "Net\nWt",
                          "Purity",
@@ -132,7 +133,8 @@ void JobsListWidget::loadData() {
     setInt(d.receiveStonePcs);
     setNum(d.receiveStoneWt);
     setNum(d.officeGoldReceive, 3, true, d.jobId);      // Col 21 Editable
-    setNum(d.manufacturerMfgReceive, 3, true, d.jobId); // Col 22 Editable
+    setNum(d.officeReceive, 3, true, d.jobId);          // Col 22 Editable
+    setNum(d.manufacturerMfgReceive, 3, true, d.jobId); // Col 23 Editable
     setNum(d.netWt);
     setItem(d.purity);
     setNum(d.grossLoss);
@@ -172,7 +174,7 @@ void JobsListWidget::calculateTotals() {
 
   // Columns to sum
   QList<int> sumCols = {3,  8,  9,  10, 11, 12, 13, 16, 17, 18,
-                        19, 20, 21, 22, 23, 25, 26, 28, 29};
+                        19, 20, 21, 22, 23, 24, 26, 27, 29, 30};
 
   for (int col : sumCols) {
     double sum = 0.0;
@@ -273,6 +275,21 @@ void JobsListWidget::onCellChanged(int row, int col) {
       qDebug() << "Updated Office Gold Rec for Job" << jobId << "to" << val;
     }
   } else if (col == 22) {
+    QTableWidgetItem *item = ui->tableWidget->item(row, col);
+    if (!item)
+      return;
+
+    int jobId = item->data(Qt::UserRole).toInt();
+    if (jobId <= 0)
+      return;
+
+    bool ok = false;
+    double val = item->text().toDouble(&ok);
+    if (ok) {
+      DatabaseUtils::updateOfficeReceive(jobId, val);
+      qDebug() << "Updated Office Receive for Job" << jobId << "to" << val;
+    }
+  } else if (col == 23) {
     QTableWidgetItem *item = ui->tableWidget->item(row, col);
     if (!item)
       return;

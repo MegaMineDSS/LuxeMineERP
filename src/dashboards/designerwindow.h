@@ -21,6 +21,7 @@ public:
 private slots:
     void changeRole();
     void openAddCatalog();
+    void openModifyCatalog() ;
 
     void openOrderList();
 

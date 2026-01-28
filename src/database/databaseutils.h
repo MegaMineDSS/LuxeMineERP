@@ -50,6 +50,7 @@ struct JobListData {
   double receiveStoneWt;
 
   double officeGoldReceive; // receive_runner_wt
+  double officeReceive;     // New column
   double manufacturerMfgReceive;
   double netWt; // Calculated
   // Purity repeated?
@@ -181,14 +182,13 @@ public:
 
   static QJsonArray generateGoldWeights(int inputKarat, double inputWeight);
 
-
-
   static bool deleteDesign(QString &designNo);
 
   static bool saveGoldStageReturn(const QString &jobNo, const QString &column,
                                   double value);
 
   static bool updateOfficeGoldReceive(int jobId, double weight);
+  static bool updateOfficeReceive(int jobId, double weight);
   static bool updateManufacturerMfgReceive(int jobId, double weight);
 
   // Missing declarations added below
@@ -203,6 +203,8 @@ public:
 
   static bool addMetalPurchase(const MetalPurchaseData &data);
   static QList<MetalPurchaseData> getAllMetalPurchases();
+
+  // static bool deleteDesign(QString &designNo) ;
 
   DatabaseUtils();
 };

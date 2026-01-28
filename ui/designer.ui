@@ -40,6 +40,7 @@
      <string>Catalog</string>
     </property>
     <addaction name="actionAdd_Catalog"/>
+    <addaction name="actionModify_Catalog"/>
    </widget>
    <widget class="QMenu" name="menuOrders">
     <property name="title">
@@ -65,6 +66,11 @@
   <action name="actionOrder_List">
    <property name="text">
     <string>Order List</string>
+   </property>
+  </action>
+  <action name="actionModify_Catalog">
+   <property name="text">
+    <string>Modify Catalog</string>
    </property>
   </action>
  </widget>
