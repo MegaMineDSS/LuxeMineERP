@@ -1,75 +1,71 @@
 #include "manufacturerwindow.h"
 #include "ui_manufacturer.h"
 
-#include "common/switchroledialog.h"
 #include "common/rolewindowfactory.h"
 #include "common/sessionmanager.h"
+#include "common/switchroledialog.h"
 #include "manufacturer/jobslistwidget.h"
+
 
 #include <QMdiSubWindow>
 
 ManufacturerWindow::ManufacturerWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::ManufacturerWindow)
-{
-    ui->setupUi(this);
+    : QMainWindow(parent), ui(new Ui::ManufacturerWindow) {
+  ui->setupUi(this);
 
-    connect(ui->actionSwitch_Role, &QAction::triggered,
-            this, &ManufacturerWindow::changeRole);
+  connect(ui->actionSwitch_Role, &QAction::triggered, this,
+          &ManufacturerWindow::changeRole);
 
-    connect(ui->actionJobs_List, &QAction::triggered,
-            this, &ManufacturerWindow::openJobsList);
+  connect(ui->actionJobs_List, &QAction::triggered, this,
+          &ManufacturerWindow::openJobsList);
 }
 
-ManufacturerWindow::~ManufacturerWindow()
-{
-    delete ui;
-}
+ManufacturerWindow::~ManufacturerWindow() { delete ui; }
 
-void ManufacturerWindow::openJobsList()
-{
-    for(QMdiSubWindow *sub : ui->mdiArea->subWindowList()) {
-        if (sub->widget()->objectName() == "JobsList") {
-            sub->setFocus();
-            return;
-        }
+void ManufacturerWindow::openJobsList() {
+  for (QMdiSubWindow *sub : ui->mdiArea->subWindowList()) {
+    if (sub->widget()->objectName() == "JobsList") {
+      sub->setFocus();
+      return;
     }
+  }
 
-    auto *widget = new JobsListWidget;
-    widget->setObjectName("JobsList");
+  auto *widget = new JobsListWidget;
+  widget->setObjectName("JobsList");
 
-    QMdiSubWindow *subWindow = ui->mdiArea->addSubWindow(widget);
-    subWindow->setWindowTitle("Jobs List");
-    subWindow->setAttribute(Qt::WA_DeleteOnClose);
+  QMdiSubWindow *subWindow = ui->mdiArea->addSubWindow(widget);
+  subWindow->setWindowTitle("Jobs List");
+  subWindow->setAttribute(Qt::WA_DeleteOnClose);
 
-    widget->show();
+  widget->show();
 }
 
-void ManufacturerWindow::changeRole()
-{
-    // 1️⃣ Open role selection dialog
-    SwitchRoleDialog dlg(this);
+QMdiArea *ManufacturerWindow::mdiArea() const { return ui->mdiArea; }
 
-    if (dlg.exec() != QDialog::Accepted)
-        return;
+void ManufacturerWindow::changeRole() {
+  // 1️⃣ Open role selection dialog
+  SwitchRoleDialog dlg(this);
 
-    // 2️⃣ Get selected role
-    QString newRole = dlg.selectedRole();
+  if (dlg.exec() != QDialog::Accepted)
+    return;
 
-    // 3️⃣ Ignore if same role selected
-    if (newRole == SessionManager::activeRole())
-        return;
+  // 2️⃣ Get selected role
+  QString newRole = dlg.selectedRole();
 
-    // 4️⃣ Update session
-    SessionManager::setActiveRole(newRole);
+  // 3️⃣ Ignore if same role selected
+  if (newRole == SessionManager::activeRole())
+    return;
 
-    // 5️⃣ Open new role window
-    QWidget *nextWindow = RoleWindowFactory::create(newRole);
-    if (!nextWindow)
-        return;
+  // 4️⃣ Update session
+  SessionManager::setActiveRole(newRole);
 
-    nextWindow->show();
+  // 5️⃣ Open new role window
+  QWidget *nextWindow = RoleWindowFactory::create(newRole);
+  if (!nextWindow)
+    return;
 
-    // 6️⃣ Close current window
-    this->close();
+  nextWindow->show();
+
+  // 6️⃣ Close current window
+  this->close();
 }

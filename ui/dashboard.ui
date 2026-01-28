@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DashboardWidget</class>
+ <widget class="QWidget" name="DashboardWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>768</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Admin Dashboard</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="labelTitle">
+     <property name="font">
+      <font>
+       <pointsize>16</pointsize>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Company Report</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayoutMain">
+     <item row="0" column="0">
+      <widget class="QGroupBox" name="groupGoldStocks">
+       <property name="title">
+        <string>Gold Stocks</string>
+       </property>
+       <layout class="QFormLayout" name="formLayoutGold">
+        <item row="0" column="0">
+         <widget class="QLabel" name="labManufacturerG">
+          <property name="text">
+           <string>Manufacturer</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="leManufacturerG">
+          <property name="text">
+           <string>0.000</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="labSellJobG">
+          <property name="text">
+           <string>Sell Job</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="leSellJobG">
+          <property name="text">
+           <string>0.000</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="labGoldLossG">
+          <property name="text">
+           <string>Gold Loss</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="leGoldLossG">
+          <property name="text">
+           <string>0.000</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="labMatLabourG">
+          <property name="text">
+           <string>Material Labour</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="leMatLabourG">
+          <property name="text">
+           <string>0.000</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="labTotalG">
+          <property name="styleSheet">
+           <string>color: red; font-weight: bold;</string>
+          </property>
+          <property name="text">
+           <string>Hend Gold Stock</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLineEdit" name="leTotalG">
+          <property name="styleSheet">
+           <string>color: red; font-weight: bold;</string>
+          </property>
+          <property name="text">
+           <string>0</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QGroupBox" name="groupSilverStocks">
+       <property name="title">
+        <string>Silvar Stocks</string>
+       </property>
+       <layout class="QFormLayout" name="formLayoutSilver">
+        <item row="0" column="0">
+         <widget class="QLabel" name="labManufacturerS">
+          <property name="text">
+           <string>Manufacturer</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="leManufacturerS">
+          <property name="text">
+           <string>0.000</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="labSellJobS">
+          <property name="text">
+           <string>Sell Job</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="leSellJobS">
+          <property name="text">
+           <string>0.000</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="labGoldLossS">
+          <property name="text">
+           <string>Gold Loss</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="leGoldLossS">
+          <property name="text">
+           <string>0.000</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="labTotalS">
+          <property name="styleSheet">
+           <string>font-weight: bold;</string>
+          </property>
+          <property name="text">
+           <string>Hend Silvar Stocks</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="leTotalS">
+          <property name="text">
+           <string>0.000</string>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="0" column="2" rowspan="3">
+      <widget class="QGroupBox" name="groupBalanceSheet">
+       <property name="title">
+        <string>BELENCH SEET</string>
+       </property>
+       <layout class="QVBoxLayout" name="vboxBalance">
+        <item>
+         <widget class="QTableWidget" name="tableBalance">
+          <column>
+           <property name="text">
+            <string>Date</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Detile</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Amount (Income)</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Date</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Detile</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Amount (Expence)</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QGroupBox" name="groupDiamond">
+       <property name="title">
+        <string>Diamond &amp; cvd</string>
+       </property>
+       <layout class="QVBoxLayout" name="vboxDiamond">
+        <item>
+         <widget class="QTableWidget" name="tableDiamond">
+          <column>
+           <property name="text">
+            <string>Type</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Pic</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Wt.</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QGroupBox" name="groupStone">
+       <property name="title">
+        <string>Stone</string>
+       </property>
+       <layout class="QVBoxLayout" name="vboxStone">
+        <item>
+         <widget class="QTableWidget" name="tableStone">
+          <column>
+           <property name="text">
+            <string>Type</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Pic</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Wt.</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="2" column="0" colspan="2">
+      <widget class="QGroupBox" name="groupManufGold">
+       <property name="title">
+        <string>MANUF GOLD RECURY</string>
+       </property>
+       <layout class="QVBoxLayout" name="vboxManuf">
+        <item>
+         <widget class="QTableWidget" name="tableManuf">
+          <column>
+           <property name="text">
+            <string>DATE</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Receive Name</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>pic</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>GOLD WT.</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>PURITY</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>TOTAL 24ct</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="3" column="0" colspan="3">
+      <widget class="QGroupBox" name="groupPending">
+       <property name="title">
+        <string>Pending Income &amp; Experience</string>
+       </property>
+       <layout class="QVBoxLayout" name="vboxPending">
+        <item>
+         <widget class="QTableWidget" name="tablePending">
+          <column>
+           <property name="text">
+            <string>Date</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Detile</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Amount</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Date</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Detile</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Amount</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -7,26 +7,24 @@ namespace Ui {
 class AdminWindow;
 }
 
-class AdminWindow : public QMainWindow
-{
-    Q_OBJECT
+class AdminWindow : public QMainWindow {
+  Q_OBJECT
 
 public:
-    explicit AdminWindow(QWidget *parent = nullptr);
-    ~AdminWindow();
+  explicit AdminWindow(QWidget *parent = nullptr);
+  ~AdminWindow();
 
 private slots:
-    void openCreateUser();
-    void openViewUsers(); // for later
+  void openCreateUser();
+  void openViewUsers(); // for later
 
-    void openOrderList();
+  void openOrderList();
+  void openDashboard();
 
-    void changeRole();
-
-
+  void changeRole();
 
 private:
-    Ui::AdminWindow *ui;
+  Ui::AdminWindow *ui;
 };
 
 #endif // ADMINWINDOW_H

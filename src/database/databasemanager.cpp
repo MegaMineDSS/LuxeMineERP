@@ -6,7 +6,6 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
-
 DatabaseManager &DatabaseManager::instance() {
   static DatabaseManager instance;
   return instance;
@@ -309,12 +308,17 @@ bool DatabaseManager::createTables() {
             issue_metal_wt REAL,
             issue_diamond_pcs INTEGER,
             issue_diamond_wt REAL,
+            issue_diamond_category TEXT,
+            issue_stone_pcs INTEGER,
+            issue_stone_wt REAL,
 
             -- Receive section
             receive_runner_wt REAL,
             receive_product_wt REAL,
             receive_diamond_pcs INTEGER,
             receive_diamond_wt REAL,
+            receive_stone_pcs INTEGER,
+            receive_stone_wt REAL,
 
             -- Meta
             accountant_id INTEGER,
@@ -350,6 +354,123 @@ bool DatabaseManager::createTables() {
         qInfo() << "Migration: Added dia_price column to casting_entry";
       }
     }
+  }
+
+  // Migration for new columns (Stone + Diamond Category)
+  {
+    QSqlQuery check(m_db);
+    // Check if one of the new columns exists
+    if (!check.exec(
+            "SELECT issue_diamond_category FROM casting_entry LIMIT 1")) {
+      QSqlQuery add(m_db);
+      bool ok = true;
+      ok &= add.exec(
+          "ALTER TABLE casting_entry ADD COLUMN issue_diamond_category TEXT");
+      ok &= add.exec("ALTER TABLE casting_entry ADD COLUMN issue_stone_pcs "
+                     "INTEGER DEFAULT 0");
+      ok &= add.exec(
+          "ALTER TABLE casting_entry ADD COLUMN issue_stone_wt REAL DEFAULT 0");
+      ok &= add.exec("ALTER TABLE casting_entry ADD COLUMN receive_stone_pcs "
+                     "INTEGER DEFAULT 0");
+      ok &= add.exec("ALTER TABLE casting_entry ADD COLUMN receive_stone_wt "
+                     "REAL DEFAULT 0");
+
+      if (!ok) {
+        qWarning() << "Migration: Failed to add some new Stone/DiaCat columns: "
+                   << add.lastError().text();
+      } else {
+        qInfo() << "Migration: Added Stone/DiaCat columns to casting_entry";
+      }
+    }
+  }
+
+  if (!query.exec(R"(
+        CREATE TABLE IF NOT EXISTS jobsheet_detail (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_no TEXT NOT NULL,
+
+            filling_issue TEXT,
+            filling_dust TEXT,
+            filling_return TEXT,
+
+            buffing_return TEXT,
+            free_polish_return TEXT,
+            setting_return TEXT,
+            final_polish_return TEXT,
+
+            diamond_issue TEXT,
+            diamond_return TEXT,
+            diamond_broken TEXT,
+
+            stone_issue TEXT,
+            stone_return TEXT,
+            stone_broken TEXT,
+
+            other_issue TEXT,
+            other_return TEXT,
+            other_broken TEXT,
+            
+            office_gold_receive TEXT,
+            manufacturer_mfg_receive TEXT,
+
+            FOREIGN KEY (job_no) REFERENCES jobs(job_no) ON DELETE CASCADE
+        );
+    )")) {
+    qCritical() << "jobsheet_detail table error:" << query.lastError();
+    return false;
+  }
+
+  // Migration: Add office_gold_receive, manufacturer_mfg_receive if not exists
+  query.exec("ALTER TABLE jobsheet_detail ADD COLUMN office_gold_receive TEXT");
+  query.exec(
+      "ALTER TABLE jobsheet_detail ADD COLUMN manufacturer_mfg_receive TEXT");
+
+  // -----------------------------
+  // METAL PURCHASE (Accountant)
+  // -----------------------------
+  if (!query.exec(R"(
+        CREATE TABLE IF NOT EXISTS metal_purchase_entry (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entry_date TEXT,
+            bill_no TEXT,
+            party_name TEXT,
+            pic INTEGER DEFAULT 0,
+            product_name TEXT,
+            weight REAL DEFAULT 0,
+            purity REAL DEFAULT 0,
+            labour_amount REAL DEFAULT 0,
+            total_gold REAL DEFAULT 0,
+            pay_weight REAL DEFAULT 0,
+            total_pay_amount REAL DEFAULT 0,
+            costing_per_gm REAL DEFAULT 0,
+            remark TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+    )")) {
+    qCritical() << "metal_purchase_entry table error:" << query.lastError();
+    return false;
+  }
+
+  // -----------------------------
+  // STOCKS
+  // -----------------------------
+  if (!query.exec(R"(
+        CREATE TABLE IF NOT EXISTS stocks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT,
+            metal TEXT,
+            detail TEXT,
+            note TEXT,
+            voucher_no TEXT,
+            purity REAL,
+            weight REAL,
+            weight_24k REAL,
+            price REAL,
+            amount REAL
+        );
+    )")) {
+    qCritical() << "stocks table error:" << query.lastError();
+    return false;
   }
 
   // -----------------------------

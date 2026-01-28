@@ -2,8 +2,9 @@
 #define CASTINGLISTWIDGET_H
 
 #include <QMdiArea>
-#include <QWidget>
 #include <QTableWidget>
+#include <QWidget>
+
 
 namespace Ui {
 class CastingListWidget;
@@ -25,6 +26,7 @@ private:
 
   void setupTable();
   void loadCastingList();
+  void calculateTotals();
 
   void openCastingWidget(int jobId);
   QMdiArea *findMdiArea(QWidget *w);

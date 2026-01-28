@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>1246</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuRoles">
@@ -41,8 +41,15 @@
     </property>
     <addaction name="actionAdd_Catalog"/>
    </widget>
+   <widget class="QMenu" name="menuOrders">
+    <property name="title">
+     <string>Orders</string>
+    </property>
+    <addaction name="actionOrder_List"/>
+   </widget>
    <addaction name="menuRoles"/>
    <addaction name="menuCatalog"/>
+   <addaction name="menuOrders"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionSwitch_Role">
@@ -53,6 +60,11 @@
   <action name="actionAdd_Catalog">
    <property name="text">
     <string>Add Catalog</string>
+   </property>
+  </action>
+  <action name="actionOrder_List">
+   <property name="text">
+    <string>Order List</string>
    </property>
   </action>
  </widget>

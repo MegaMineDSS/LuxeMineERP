@@ -34,7 +34,7 @@ file(GLOB QXLSX_SOURCES
 )
 
 file(GLOB QXLSX_HEADERS
-    external/QXlsx/include/*.h
+    external/QXlsx/header/*.h
 )
 
 # -------------------------------------------------
@@ -66,15 +66,22 @@ set(SOURCES
     src/admin/usercreationwidget.cpp
     src/admin/viewuserswidget.cpp
     src/admin/changepassworddialog.cpp
+    src/admin/dashboardwidget.cpp
+
+    src/accountant/stocklistwidget.cpp
+    src/accountant/stockwidget.cpp
 
     src/seller/orderwidget.cpp
     src/seller/orderlistwidget.cpp
 
     src/accountant/castingwidget.cpp
     src/accountant/castinglistwidget.cpp
+    src/accountant/metalpurchasewidget.cpp
+    src/accountant/metalpurchasedialog.cpp
 
-    src/dashboards/addcatalog.cpp
-    src/dashboards/jewelrymenu.cpp
+    src/designer/jewelrymenu.cpp
+    src/designer/addcatalog.cpp
+    src/designer/designerorderlistwidget.cpp
 
     src/manufacturer/jobsheetwidget.cpp
     src/manufacturer/managegolddialog.cpp
@@ -115,20 +122,28 @@ set(HEADERS
     src/admin/usercreationwidget.h
     src/admin/viewuserswidget.h
     src/admin/changepassworddialog.h
+    src/admin/dashboardwidget.h
+    
+    src/accountant/stocklistwidget.h
+    src/accountant/stockwidget.h
 
     src/seller/orderwidget.h
     src/seller/orderlistwidget.h
 
     src/accountant/castingwidget.h
     src/accountant/castinglistwidget.h
+    src/accountant/metalpurchasewidget.h
+    src/accountant/metalpurchasedialog.h
 
-    src/dashboards/addcatalog.h
-    src/dashboards/jewelrymenu.h
+    src/designer/jewelrymenu.h
+    src/designer/addcatalog.h
+    src/designer/designerorderlistwidget.h
 
     src/manufacturer/jobsheetwidget.h
     src/manufacturer/managegolddialog.h
     src/manufacturer/diamonissueretbrodialog.h
     src/manufacturer/jobslistwidget.h
+    src/common/AppStyle.h
 )
 
 set(UI_FILES
@@ -150,6 +165,10 @@ set(UI_FILES
     ui/diamonissueretbro.ui
     ui/jobslist.ui
     ui/addcatalog.ui
+    ui/designerorderlist.ui
+    ui/dashboard.ui
+    ui/stocklist.ui
+    ui/stock.ui
 )
 
 # -------------------------------------------------
@@ -178,7 +197,7 @@ target_include_directories(LuxeMineERP PRIVATE
     src/models
     src/common
     src/database
-    external/QXlsx/include
+    external/QXlsx/header
 )
 
 # -------------------------------------------------

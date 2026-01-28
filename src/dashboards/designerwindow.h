@@ -2,6 +2,7 @@
 #define DESIGNERWINDOW_H
 
 #include <QMainWindow>
+#include <QMdiArea>
 
 namespace Ui {
 class DesignerWindow;
@@ -15,9 +16,13 @@ public:
     explicit DesignerWindow(QWidget *parent = nullptr);
     ~DesignerWindow();
 
+    QMdiArea* mdiArea() const;
+
 private slots:
     void changeRole();
     void openAddCatalog();
+
+    void openOrderList();
 
 private:
     Ui::DesignerWindow *ui;

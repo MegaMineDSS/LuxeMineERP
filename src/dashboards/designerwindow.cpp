@@ -4,7 +4,8 @@
 #include "common/switchroledialog.h"
 #include "common/rolewindowfactory.h"
 #include "common/sessionmanager.h"
-#include "dashboards/addcatalog.h"
+#include "designer/addcatalog.h"
+#include "designer/designerorderlistwidget.h"
 
 #include <QMdiSubWindow>
 
@@ -20,6 +21,9 @@ DesignerWindow::DesignerWindow(QWidget *parent)
             this, &DesignerWindow::changeRole);
     connect(ui->actionAdd_Catalog, &QAction::triggered, this, &DesignerWindow::openAddCatalog) ;
 
+    connect(ui->actionOrder_List, &QAction::triggered,
+            this, &DesignerWindow::openOrderList);
+
     // connect Add Catalog action if exists
     if (ui->menuRoles) {
         // actionAdd_Catalog likely added in UI; try to connect if present
@@ -34,6 +38,12 @@ DesignerWindow::~DesignerWindow()
 {
     delete ui;
 }
+
+QMdiArea* DesignerWindow::mdiArea() const
+{
+    return ui->mdiArea;
+}
+
 
 void DesignerWindow::changeRole(){
     // 1 Open role selection dialog
@@ -78,4 +88,23 @@ void DesignerWindow::openAddCatalog()
     sub->setWindowTitle("Add Catalog");
 
     widget->showMaximized();
+}
+
+void DesignerWindow::openOrderList(){
+    for (QMdiSubWindow *sub : ui->mdiArea->subWindowList()) {
+        if (sub->widget() && sub->widget()->objectName() == "DesignerOederList") {
+            ui->mdiArea->setActiveSubWindow(sub);
+            return;
+        }
+    }
+
+    auto *widget = new DesignerOrderListWidget;
+    widget->setObjectName("DesignerOederList");
+
+    QMdiSubWindow *sub = ui->mdiArea->addSubWindow(widget);
+    sub->setAttribute(Qt::WA_DeleteOnClose);
+    sub->setWindowTitle("Order List");
+
+    widget->showMaximized();
+
 }

@@ -7,21 +7,22 @@ namespace Ui {
 class AccountantWindow;
 }
 
-class AccountantWindow : public QMainWindow
-{
-    Q_OBJECT
+class AccountantWindow : public QMainWindow {
+  Q_OBJECT
 
 public:
-    explicit AccountantWindow(QWidget *parent = nullptr);
-    ~AccountantWindow();
+  explicit AccountantWindow(QWidget *parent = nullptr);
+  ~AccountantWindow();
 
 private slots:
-    void changeRole();
+  void changeRole();
 
-    void openOrderList();
+  void openOrderList();
+  void openStockList();
+  void openMetalPurchase();
 
 private:
-    Ui::AccountantWindow *ui;
+  Ui::AccountantWindow *ui;
 };
 
 #endif // ACCOUNTANTWINDOW_H

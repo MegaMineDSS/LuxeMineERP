@@ -127,9 +127,8 @@ void CastingListWidget::loadCastingList() {
     QRegularExpressionMatch match = re.match(purityStr);
     double purityVal = 0.0;
     if (match.hasMatch()) {
-        purityVal = match.captured(1).toDouble();  // → 22
+      purityVal = match.captured(1).toDouble(); // → 22
     }
-
 
     double fineLoss = 0.0;
     // IF user literally meant Gross / (100 * purity):
@@ -197,6 +196,63 @@ void CastingListWidget::loadCastingList() {
     }
   }
   table->blockSignals(false);
+  calculateTotals();
+}
+
+void CastingListWidget::calculateTotals() {
+  auto *table = ui->castingTableWidget;
+  int rowCount = table->rowCount();
+  if (rowCount == 0)
+    return;
+
+  table->insertRow(rowCount);
+
+  // Set "Total" label
+  QTableWidgetItem *label = new QTableWidgetItem("Total");
+  label->setTextAlignment(Qt::AlignCenter);
+  QFont font = label->font();
+  font.setBold(true);
+  label->setFont(font);
+  label->setFlags(label->flags() & ~Qt::ItemIsEditable);
+  table->setItem(rowCount, 0, label);
+
+  // Columns to sum
+  QList<int> sumCols = {4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19};
+
+  for (int col : sumCols) {
+    double sum = 0.0;
+    bool isInt = (col == 4 || col == 8 || col == 12 || col == 16);
+
+    for (int r = 0; r < rowCount; r++) {
+      QTableWidgetItem *it = table->item(r, col);
+      if (it) {
+        sum += it->text().toDouble();
+      }
+    }
+
+    QTableWidgetItem *totalItem = new QTableWidgetItem();
+    if (isInt) {
+      totalItem->setText(QString::number((int)sum));
+    } else {
+      totalItem->setText(QString::number(sum, 'f', 3));
+    }
+
+    totalItem->setTextAlignment(Qt::AlignCenter);
+    totalItem->setFont(font);
+    totalItem->setFlags(totalItem->flags() &
+                        ~Qt::ItemIsEditable); // Total cells read only
+    table->setItem(rowCount, col, totalItem);
+  }
+
+  // Empty cells for others
+  int colCount = table->columnCount();
+  for (int c = 0; c < colCount; c++) {
+    if (!table->item(rowCount, c)) {
+      QTableWidgetItem *empty = new QTableWidgetItem();
+      empty->setFlags(empty->flags() & ~Qt::ItemIsEditable);
+      table->setItem(rowCount, c, empty);
+    }
+  }
 }
 
 void CastingListWidget::onItemChanged(QTableWidgetItem *item) {

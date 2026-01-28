@@ -2,29 +2,33 @@
 #include <QMessageBox>
 
 #include "auth/LoginWindow.h"
+#include "common/AppStyle.h"
 #include "database/DatabaseManager.h"
 
-int main(int argc, char *argv[])
-{
-    QApplication app(argc, argv);
 
-    // -------------------------------------------------
-    // Initialize Database
-    // -------------------------------------------------
-    if (!DatabaseManager::instance().initialize()) {
-        QMessageBox::critical(
-            nullptr,
-            "Database Error",
-            "Failed to initialize database.\nApplication will exit."
-            );
-        return -1;
-    }
+int main(int argc, char *argv[]) {
+  QApplication app(argc, argv);
 
-    // -------------------------------------------------
-    // Show Login Window
-    // -------------------------------------------------
-    LoginWindow loginWindow;
-    loginWindow.show();
+  // -------------------------------------------------
+  // Apply Global Style
+  // -------------------------------------------------
+  app.setStyleSheet(AppStyle::getDarkTheme());
 
-    return app.exec();
+  // -------------------------------------------------
+  // Initialize Database
+  // -------------------------------------------------
+  if (!DatabaseManager::instance().initialize()) {
+    QMessageBox::critical(
+        nullptr, "Database Error",
+        "Failed to initialize database.\nApplication will exit.");
+    return -1;
+  }
+
+  // -------------------------------------------------
+  // Show Login Window
+  // -------------------------------------------------
+  LoginWindow loginWindow;
+  loginWindow.show();
+
+  return app.exec();
 }

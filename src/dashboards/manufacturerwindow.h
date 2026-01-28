@@ -2,26 +2,29 @@
 #define MANUFACTURERWINDOW_H
 
 #include <QMainWindow>
+#include <QMdiArea>
 
 namespace Ui {
 class ManufacturerWindow;
 }
 
-class ManufacturerWindow : public QMainWindow
-{
-    Q_OBJECT
+class ManufacturerWindow : public QMainWindow {
+  Q_OBJECT
 
 public:
-    explicit ManufacturerWindow(QWidget *parent = nullptr);
-    ~ManufacturerWindow();
+  explicit ManufacturerWindow(QWidget *parent = nullptr);
+  ~ManufacturerWindow();
 
 private slots:
-    void changeRole();
+  void changeRole();
 
 private:
-    Ui::ManufacturerWindow *ui;
+  Ui::ManufacturerWindow *ui;
 
-    void openJobsList();
+  void openJobsList();
+
+public:
+  QMdiArea *mdiArea() const;
 };
 
 #endif // MANUFACTURERWINDOW_H

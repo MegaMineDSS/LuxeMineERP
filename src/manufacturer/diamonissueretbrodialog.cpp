@@ -1,304 +1,225 @@
 #include "diamonissueretbrodialog.h"
+#include "database/databaseutils.h"
 #include "ui_diamonissueretbro.h"
 
-#include <QMessageBox>
-#include <QSqlError>
-#include <QSqlDatabase>
-#include <QSqlQuery>
 #include <QDir>
-#include <QJsonObject>
-#include <QJsonDocument>
 #include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QMessageBox>
 
 DiamonIssueRetBroDialog::DiamonIssueRetBroDialog(QWidget *parent)
-    : QDialog(parent)
-    , ui(new Ui::DiamonIssueRetBroDialog)
-{
-    ui->setupUi(this);
+    : QDialog(parent), ui(new Ui::DiamonIssueRetBroDialog) {
+  ui->setupUi(this);
 
+  ui->diamondRadioButton->setChecked(true);
+  ui->sizeComboBox->setEnabled(true);
+
+  connect(ui->diamondRadioButton, &QRadioButton::toggled, this,
+          &DiamonIssueRetBroDialog::onRadioChanged);
+  connect(ui->stoneRadioButton, &QRadioButton::toggled, this,
+          &DiamonIssueRetBroDialog::onRadioChanged);
+  connect(ui->otherRadioButton, &QRadioButton::toggled, this,
+          &DiamonIssueRetBroDialog::onRadioChanged);
+  connect(ui->typeComboBox, &QComboBox::currentTextChanged, this,
+          &DiamonIssueRetBroDialog::onTypeChanged);
+  connect(ui->addPushButton, &QPushButton::clicked, this,
+          &DiamonIssueRetBroDialog::onSaveClicked);
+
+  ui->historyTableWidget->setColumnCount(4);
+  ui->historyTableWidget->setHorizontalHeaderLabels(
+      {"Type", "Size", "Pcs", "Weight"});
+  ui->historyTableWidget->horizontalHeader()->setStretchLastSection(true);
+  ui->historyTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  ui->historyTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+  loadTypeOptions(); // initial
+  loadHistoryForCurrentContext();
+}
+
+DiamonIssueRetBroDialog::~DiamonIssueRetBroDialog() { delete ui; }
+
+void DiamonIssueRetBroDialog::hideEvent(QHideEvent *event) {
+  qApp->removeEventFilter(this);
+  ui->stackedWidget->setCurrentIndex(0);
+  // loadHistory();
+  ui->sizeComboBox->clear();
+  ui->typeComboBox->clear();
+  ui->quantityLineEdit->clear();
+  ui->weightLineEdit->clear();
+  // emit menuHidden();
+  QDialog::hideEvent(event);
+}
+
+void DiamonIssueRetBroDialog::setContext(int row, int col,
+                                         const QString &jobNo) {
+  currentRow = row;
+  currentCol = col;
+  currentJobNo = jobNo;
+
+  // Determine mode based on column
+  if (col == 1 || col == 2)
+    currentMode = "issue";
+  else if (col == 3 || col == 4)
+    currentMode = "return";
+  else if (col == 5 || col == 6)
+    currentMode = "broken";
+  else
+    currentMode.clear();
+
+  // Set radio button automatically
+  if (row == 0)
     ui->diamondRadioButton->setChecked(true);
+  else if (row == 1)
+    ui->stoneRadioButton->setChecked(true);
+  else
+    ui->otherRadioButton->setChecked(true);
+
+  // Load correct JSON data into table
+  loadHistoryForCurrentContext();
+}
+
+void DiamonIssueRetBroDialog::onRadioChanged() {
+  ui->typeComboBox->clear();
+  ui->sizeComboBox->clear();
+
+  if (ui->diamondRadioButton->isChecked()) {
     ui->sizeComboBox->setEnabled(true);
+  } else if (ui->stoneRadioButton->isChecked()) {
+    ui->sizeComboBox->setEnabled(true);
+  } else { // Other
+    ui->typeComboBox->setEditable(true);
+    ui->sizeComboBox->setEnabled(false);
+  }
 
-    connect(ui->diamondRadioButton, &QRadioButton::toggled, this, &DiamonIssueRetBroDialog::onRadioChanged);
-    connect(ui->stoneRadioButton, &QRadioButton::toggled, this, &DiamonIssueRetBroDialog::onRadioChanged);
-    connect(ui->otherRadioButton, &QRadioButton::toggled, this, &DiamonIssueRetBroDialog::onRadioChanged);
-    connect(ui->typeComboBox, &QComboBox::currentTextChanged, this, &DiamonIssueRetBroDialog::onTypeChanged);
-    connect(ui->addPushButton, &QPushButton::clicked, this, &DiamonIssueRetBroDialog::onSaveClicked);
-
-
-    ui->historyTableWidget->setColumnCount(4);
-    ui->historyTableWidget->setHorizontalHeaderLabels({"Type", "Size", "Pcs", "Weight"});
-    ui->historyTableWidget->horizontalHeader()->setStretchLastSection(true);
-    ui->historyTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->historyTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-
-
-    loadTypeOptions(); // initial
-    loadHistoryForCurrentContext();
+  loadTypeOptions();
 }
 
-DiamonIssueRetBroDialog::~DiamonIssueRetBroDialog()
-{
-    delete ui;
+void DiamonIssueRetBroDialog::loadTypeOptions() {
+  QStringList types;
+
+  if (ui->diamondRadioButton->isChecked()) {
+    types = DatabaseUtils::fetchShapes("diamond");
+  } else if (ui->stoneRadioButton->isChecked()) {
+    types = DatabaseUtils::fetchShapes("stone");
+  } else {
+    // Other: editable text
+    ui->typeComboBox->setEditable(true);
+  }
+  // qDebug() << types;
+  ui->typeComboBox->addItems(types);
 }
 
-void DiamonIssueRetBroDialog::hideEvent(QHideEvent *event)
-{
-    qApp->removeEventFilter(this);
-    ui->stackedWidget->setCurrentIndex(0);
-    // loadHistory();
-    ui->sizeComboBox->clear();
-    ui->typeComboBox->clear();
-    ui->quantityLineEdit->clear();
-    ui->weightLineEdit->clear();
-    // emit menuHidden();
-    QDialog::hideEvent(event);
+void DiamonIssueRetBroDialog::onTypeChanged() {
+  ui->sizeComboBox->clear();
+
+  QString type = ui->typeComboBox->currentText();
+  if (type.isEmpty())
+    return;
+
+  QStringList sizes;
+  if (ui->diamondRadioButton->isChecked()) {
+    sizes = DatabaseUtils::fetchSizes("diamond", type);
+  } else if (ui->stoneRadioButton->isChecked()) {
+    sizes = DatabaseUtils::fetchSizes("stone", type);
+  } else {
+    ui->sizeComboBox->setEnabled(false);
+  }
+
+  ui->sizeComboBox->addItems(sizes);
 }
 
-void DiamonIssueRetBroDialog::setContext(int row, int col, const QString &jobNo)
-{
-    currentRow = row;
-    currentCol = col;
-    currentJobNo = jobNo;
+void DiamonIssueRetBroDialog::onSaveClicked() {
+  QString type = ui->typeComboBox->currentText().trimmed();
+  QString size = ui->sizeComboBox->currentText().trimmed();
 
-    // Determine mode based on column
-    if (col == 1 || col == 2)
-        currentMode = "issue";
-    else if (col == 3 || col == 4)
-        currentMode = "return";
-    else if (col == 5 || col == 6)
-        currentMode = "broken";
-    else
-        currentMode.clear();
+  // Get input values
+  QString qtyStr = ui->quantityLineEdit->text().trimmed();
+  QString wtStr = ui->weightLineEdit->text().trimmed();
 
-    // Set radio button automatically
-    if (row == 0)
-        ui->diamondRadioButton->setChecked(true);
-    else if (row == 1)
-        ui->stoneRadioButton->setChecked(true);
-    else
-        ui->otherRadioButton->setChecked(true);
+  // Validate quantity
+  bool okQty;
+  int qty = qtyStr.toInt(&okQty);
+  if (!okQty || qty <= 0) {
+    QMessageBox::warning(
+        this, "Invalid Quantity",
+        "Please enter a valid integer quantity greater than 0.");
+    return;
+  }
 
-    // Load correct JSON data into table
-    loadHistoryForCurrentContext();
+  // Validate weight
+  bool okWt;
+  double wt = wtStr.toDouble(&okWt);
+  if (!okWt || wt <= 0.0) {
+    QMessageBox::warning(this, "Invalid Weight",
+                         "Please enter a valid weight greater than 0.");
+    return;
+  }
+
+  // Round/format weight
+  QString formattedWt = QString::number(wt, 'f', 3); // always 3 decimals
+
+  // Determine category
+  QString category;
+  if (ui->diamondRadioButton->isChecked())
+    category = "diamond";
+  else if (ui->stoneRadioButton->isChecked())
+    category = "stone";
+  else
+    category = "other";
+
+  // Build JSON entry
+  QJsonObject entry;
+  entry["type"] = type;
+  entry["size"] = size;
+  entry["category"] = category;
+  entry["pcs"] = qty;
+  entry["wt"] = formattedWt;
+
+  // Save JSON into database
+  saveToDatabase(entry);
+
+  // Emit signal to update main table
+  QVariantMap vals;
+  vals["issue_pcs"] = QString::number(qty);
+  vals["issue_wt"] = formattedWt;
+
+  emit valuesUpdated(currentRow, vals);
+  emit menuHidden();
+  close();
 }
 
-void DiamonIssueRetBroDialog::onRadioChanged()
-{
-    ui->typeComboBox->clear();
-    ui->sizeComboBox->clear();
+void DiamonIssueRetBroDialog::saveToDatabase(const QJsonObject &entry) {
+  // QString colName;
 
-    if (ui->diamondRadioButton->isChecked()) {
-        ui->sizeComboBox->setEnabled(true);
-    } else if (ui->stoneRadioButton->isChecked()) {
-        ui->sizeComboBox->setEnabled(true);
-    } else { // Other
-        ui->typeComboBox->setEditable(true);
-        ui->sizeComboBox->setEnabled(false);
-    }
+  QString baseName;
 
-    loadTypeOptions();
-}
+  // 🧭 Decide base column using radio button, not row
+  if (ui->diamondRadioButton->isChecked())
+    baseName = "diamond";
+  else if (ui->stoneRadioButton->isChecked())
+    baseName = "stone";
+  else if (ui->otherRadioButton->isChecked())
+    baseName = "other";
+  else
+    return; // no valid selection
 
-void DiamonIssueRetBroDialog::loadTypeOptions()
-{
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "diamond_popup_conn");
-    QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database/mega_mine_image.db");
-    db.setDatabaseName(dbPath);
+  // 🧭 Decide suffix based on mode (issue / return / broken)
+  QString colName;
+  if (currentMode == "issue")
+    colName = baseName + "_issue";
+  else if (currentMode == "return")
+    colName = baseName + "_return";
+  else if (currentMode == "broken")
+    colName = baseName + "_broken"; // optional, if you add broken later
+  else
+    return;
 
-    if (!db.open()) {
-        QMessageBox::warning(this, "DB Error", db.lastError().text());
-        return;
-    }
-
-    QSqlQuery query(db);
-    QStringList types;
-
-    if (ui->diamondRadioButton->isChecked()) {
-        // Fetch distinct shapes from Fancy_diamond and add "Round"
-        query.exec("SELECT DISTINCT shape FROM Fancy_diamond");
-        types << "Round";
-        while (query.next())
-            types << query.value(0).toString();
-    } else if (ui->stoneRadioButton->isChecked()) {
-        query.exec("SELECT DISTINCT shape FROM stones");
-        while (query.next())
-            types << query.value(0).toString();
-    } else {
-        // Other: editable text
-        ui->typeComboBox->setEditable(true);
-    }
-
-    ui->typeComboBox->addItems(types);
-    db.close();
-    QSqlDatabase::removeDatabase("diamond_popup_conn");
-}
-
-void DiamonIssueRetBroDialog::onTypeChanged()
-{
-    ui->sizeComboBox->clear();
-
-    QString type = ui->typeComboBox->currentText();
-    if (type.isEmpty())
-        return;
-
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "diamond_popup_conn2");
-    QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database/mega_mine_image.db");
-    db.setDatabaseName(dbPath);
-
-    if (!db.open()) return;
-
-    QSqlQuery query(db);
-
-    if (ui->diamondRadioButton->isChecked()) {
-        if (type == "Round") {
-            query.prepare("SELECT sizeMM FROM Round_diamond ORDER BY sizeMM ASC");
-        } else {
-            query.prepare("SELECT DISTINCT sizeMM FROM Fancy_diamond WHERE shape = ? ORDER BY sizeMM ASC");
-            query.addBindValue(type);
-        }
-    } else if (ui->stoneRadioButton->isChecked()) {
-        query.prepare("SELECT DISTINCT sizeMM FROM stones WHERE shape = ? ORDER BY sizeMM ASC");
-        query.addBindValue(type);
-    } else {
-        ui->sizeComboBox->setEnabled(false);
-    }
-
-    if (query.exec()) {
-        while (query.next())
-            ui->sizeComboBox->addItem(query.value(0).toString());
-    }
-
-    db.close();
-    QSqlDatabase::removeDatabase("diamond_popup_conn2");
-}
-
-void DiamonIssueRetBroDialog::onSaveClicked()
-{
-    QString type = ui->typeComboBox->currentText().trimmed();
-    QString size = ui->sizeComboBox->currentText().trimmed();
-
-    // Get input values
-    QString qtyStr = ui->quantityLineEdit->text().trimmed();
-    QString wtStr = ui->weightLineEdit->text().trimmed();
-
-    // Validate quantity
-    bool okQty;
-    int qty = qtyStr.toInt(&okQty);
-    if (!okQty || qty <= 0) {
-        QMessageBox::warning(this, "Invalid Quantity", "Please enter a valid integer quantity greater than 0.");
-        return;
-    }
-
-    // Validate weight
-    bool okWt;
-    double wt = wtStr.toDouble(&okWt);
-    if (!okWt || wt <= 0.0) {
-        QMessageBox::warning(this, "Invalid Weight", "Please enter a valid weight greater than 0.");
-        return;
-    }
-
-    // Round/format weight
-    QString formattedWt = QString::number(wt, 'f', 3); // always 3 decimals
-
-    // Determine category
-    QString category;
-    if (ui->diamondRadioButton->isChecked()) category = "diamond";
-    else if (ui->stoneRadioButton->isChecked()) category = "stone";
-    else category = "other";
-
-    // Build JSON entry
-    QJsonObject entry;
-    entry["type"] = type;
-    entry["size"] = size;
-    entry["category"] = category;
-    entry["pcs"] = qty;
-    entry["wt"] = formattedWt;
-
-    // Save JSON into database
-    saveToDatabase(entry);
-
-    // Emit signal to update main table
-    QVariantMap vals;
-    vals["issue_pcs"] = QString::number(qty);
-    vals["issue_wt"]  = formattedWt;
-
-    emit valuesUpdated(currentRow, vals);
-    emit menuHidden();
-    close();
-}
-
-void DiamonIssueRetBroDialog::saveToDatabase(const QJsonObject &entry)
-{
-    // QString colName;
-
-    QString baseName;
-
-    // 🧭 Decide base column using radio button, not row
-    if (ui->diamondRadioButton->isChecked())
-        baseName = "diamond";
-    else if (ui->stoneRadioButton->isChecked())
-        baseName = "stone";
-    else if (ui->otherRadioButton->isChecked())
-        baseName = "other";
-    else
-        return; // no valid selection
-
-    // 🧭 Decide suffix based on mode (issue / return / broken)
-    QString colName;
-    if (currentMode == "issue")
-        colName = baseName + "_issue";
-    else if (currentMode == "return")
-        colName = baseName + "_return";
-    else if (currentMode == "broken")
-        colName = baseName + "_broken";  // optional, if you add broken later
-    else
-        return;
-
-
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "diamond_save_conn");
-    QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database/mega_mine_orderbook.db");
-    db.setDatabaseName(dbPath);
-
-    if (!db.open()) {
-        qDebug() << "❌ DB open failed:" << db.lastError().text();
-        return;
-    }
-
-    // // Ensure row exists
-    // QSqlQuery ensure(db);
-    // ensure.prepare("INSERT OR IGNORE INTO jobsheet_detail (job_no) VALUES (?)");
-    // ensure.addBindValue(currentJobNo);
-    // ensure.exec();
-
-    // Fetch existing JSON
-    QSqlQuery q(db);
-    q.prepare(QString("SELECT \"%1\" FROM jobsheet_detail WHERE job_no = ?").arg(colName));
-    q.addBindValue(currentJobNo);
-    QString existing;
-    if (q.exec() && q.next())
-        existing = q.value(0).toString();
-
-    QJsonArray arr;
-    if (!existing.isEmpty()) {
-        QJsonDocument doc = QJsonDocument::fromJson(existing.toUtf8());
-        if (doc.isArray()) arr = doc.array();
-    }
-
-    arr.append(entry);
-    QString jsonStr = QString::fromUtf8(QJsonDocument(arr).toJson(QJsonDocument::Compact));
-
-    q.prepare(QString("UPDATE jobsheet_detail SET \"%1\" = ? WHERE job_no = ?").arg(colName));
-    q.addBindValue(jsonStr);
-    q.addBindValue(currentJobNo);
-    if (!q.exec()) {
-        qDebug() << "❌ Update failed:" << q.lastError().text();
-    } else {
-        qDebug() << "✅ Updated" << colName;
-    }
-
-    db.close();
-    QSqlDatabase::removeDatabase("diamond_save_conn");
+  if (DatabaseUtils::addJobSheetHistoryEntry(currentJobNo, colName, entry)) {
+    qDebug() << "✅ Updated" << colName;
+  } else {
+    qDebug() << "❌ Update failed for" << colName;
+  }
 }
 
 // void DiamonIssueRetBroDialog::onCancelClicked()
@@ -307,83 +228,65 @@ void DiamonIssueRetBroDialog::saveToDatabase(const QJsonObject &entry)
 //     close();
 // }
 
-void DiamonIssueRetBroDialog::on_pushButton_clicked()
-{
-    ui->stackedWidget->setCurrentIndex(1);
+void DiamonIssueRetBroDialog::on_pushButton_clicked() {
+  ui->stackedWidget->setCurrentIndex(1);
 }
 
-void DiamonIssueRetBroDialog::loadHistoryForCurrentContext()
-{
-    if (currentJobNo.isEmpty()) return;
+void DiamonIssueRetBroDialog::loadHistoryForCurrentContext() {
+  if (currentJobNo.isEmpty())
+    return;
 
-    // 🧭 Step 1: Determine base column from radio buttons
-    QString baseName;
-    if (ui->diamondRadioButton->isChecked())
-        baseName = "diamond";
-    else if (ui->stoneRadioButton->isChecked())
-        baseName = "stone";
-    else if (ui->otherRadioButton->isChecked())
-        baseName = "other";
-    else
-        return;
+  // 🧭 Step 1: Determine base column from radio buttons
+  QString baseName;
+  if (ui->diamondRadioButton->isChecked())
+    baseName = "diamond";
+  else if (ui->stoneRadioButton->isChecked())
+    baseName = "stone";
+  else if (ui->otherRadioButton->isChecked())
+    baseName = "other";
+  else
+    return;
 
-    // 🧭 Step 2: Determine suffix based on mode
-    QString colName;
-    if (currentMode == "issue")
-        colName = baseName + "_issue";
-    else if (currentMode == "return")
-        colName = baseName + "_return";
-    else if (currentMode == "broken")
-        colName = baseName + "_broken";
-    else
-        return;
+  // 🧭 Step 2: Determine suffix based on mode
+  QString colName;
+  if (currentMode == "issue")
+    colName = baseName + "_issue";
+  else if (currentMode == "return")
+    colName = baseName + "_return";
+  else if (currentMode == "broken")
+    colName = baseName + "_broken";
+  else
+    return;
 
-    // 🧭 Step 3: Open DB connection
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "diamond_history_conn");
-    QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database/mega_mine_orderbook.db");
-    db.setDatabaseName(dbPath);
+  // 🧭 Step 3: Fetch from DB using DatabaseUtils
+  QJsonArray arr = DatabaseUtils::fetchJobSheetHistory(currentJobNo, colName);
 
-    if (!db.open()) {
-        qDebug() << "❌ DB Open Failed:" << db.lastError().text();
-        return;
-    }
+  // 🧭 Step 4: Clear and show history
+  ui->historyTableWidget->setRowCount(0);
+  // if (arr.isEmpty()) return; // Don't return if empty, just clear table is
+  // fine
 
-    QSqlQuery q(db);
-    q.prepare(QString("SELECT \"%1\" FROM jobsheet_detail WHERE job_no = ?").arg(colName));
-    q.addBindValue(currentJobNo);
+  int row = 0;
+  for (const QJsonValue &val : arr) {
+    if (!val.isObject())
+      continue;
+    QJsonObject obj = val.toObject();
 
-    QString jsonStr;
-    if (q.exec() && q.next())
-        jsonStr = q.value(0).toString();
+    ui->historyTableWidget->insertRow(row);
+    ui->historyTableWidget->setItem(
+        row, 0, new QTableWidgetItem(obj["type"].toString()));
+    ui->historyTableWidget->setItem(
+        row, 1, new QTableWidgetItem(obj["size"].toString()));
 
-    db.close();
-    QSqlDatabase::removeDatabase("diamond_history_conn");
+    QString pcsStr = obj["pcs"].isString()
+                         ? obj["pcs"].toString()
+                         : QString::number(obj["pcs"].toInt());
+    QString wtStr = obj["wt"].isString()
+                        ? obj["wt"].toString()
+                        : QString::number(obj["wt"].toDouble(), 'f', 3);
 
-    // 🧭 Step 4: Clear and show history
-    ui->historyTableWidget->setRowCount(0);
-    if (jsonStr.isEmpty()) return;
-
-    QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-    if (!doc.isArray()) return;
-
-    QJsonArray arr = doc.array();
-    int row = 0;
-    for (const QJsonValue &val : arr) {
-        if (!val.isObject()) continue;
-        QJsonObject obj = val.toObject();
-
-        ui->historyTableWidget->insertRow(row);
-        ui->historyTableWidget->setItem(row, 0, new QTableWidgetItem(obj["type"].toString()));
-        ui->historyTableWidget->setItem(row, 1, new QTableWidgetItem(obj["size"].toString()));
-
-        QString pcsStr = obj["pcs"].isString() ? obj["pcs"].toString() :
-                             QString::number(obj["pcs"].toInt());
-        QString wtStr  = obj["wt"].isString() ? obj["wt"].toString() :
-                            QString::number(obj["wt"].toDouble(), 'f', 3);
-
-        ui->historyTableWidget->setItem(row, 2, new QTableWidgetItem(pcsStr));
-        ui->historyTableWidget->setItem(row, 3, new QTableWidgetItem(wtStr));
-        row++;
-    }
+    ui->historyTableWidget->setItem(row, 2, new QTableWidgetItem(pcsStr));
+    ui->historyTableWidget->setItem(row, 3, new QTableWidgetItem(wtStr));
+    row++;
+  }
 }
-
